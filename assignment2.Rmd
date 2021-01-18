@@ -113,7 +113,7 @@ A difference estimate of the effect of $\mathbb{1}(T_i=1)$ on $Y_i$.
 
 - The intuition behind it: 
 
-Suppose we have treated and control group. The difference estimate is the difference in the group's average. The difference estimate of the effect of treatment on $y_i$ compares  the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. 
+Suppose we have treated and control group. The difference estimate is just the difference of the two group's average. The difference estimate of the effect of treatment on $y_i$ compares  the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. 
 
 $$
 \begin{aligned}
