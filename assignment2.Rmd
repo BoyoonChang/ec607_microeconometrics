@@ -113,11 +113,13 @@ A difference estimate of the effect of $\mathbb{1}(T_i=1)$ on $Y_i$.
 
 - The intuition behind it: 
 
-Suppose we have treated and control group. The difference estimate of the effect of treatment on $y_i$ compares  the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. 
+Suppose we have treated and control group. The difference estimate is the difference in the group's average. The difference estimate of the effect of treatment on $y_i$ compares  the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. 
 
 $$
 \begin{aligned}
-E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)
+\textrm{A difference estimator}
+&= 
+E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 &= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
 &= E(Y_{1i}-Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
 &= \textrm{average treatment effect on the treated} + \textrm{selection bias (pre-treatment)}\\
@@ -248,78 +250,6 @@ ggplot(sim_df, aes(x = std.error))+geom_density()+
   xlab("Standard error") +
   ylab("Density") +  theme(legend.position = c(0.8, 0.8))
 ```
-
-
-<br>
-A matching-type estimator of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
-
-- The intuition behind it: 
-
-The treatment effect can be calculated by averaging the the difference of each comparable individuals in the treatment and control group. This implies that for a given data, we have multiple treatment effect calculated. By taking the average of that treatment effect, we have a matching-type estimate of the treatment effect. 
-
-- The identification assumption(s): 
-
-That the matched individuals from the two groups are comparable, i.e. exhibit similar attributes except the treatment status. 
-
-- An example:
-
-- Anything particular about standard errors:
-
-
-<br>
-A difference-in-difference estimate of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
-
-- The intuition behind it: 
-
-This estimator considers the difference of the treated and control group in the model. Suppose that the difference of the treated and control group remains constant after the treatment. Then the treatment effect using a difference-in-difference is calculated by subtracting the difference of the treated and control group before the treatment from the observed treated status of the treatment group.  
-
-$$
-\begin{aligned}
-\textrm{Suppose that ATE} 
-&\equiv E(Y_{1i}-Y_{0i})\\
-&= (E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1)) -(E(Y_{1i}|T_i=0) - E(Y_{0i}|T_i=0))\\
-&= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) -(E(Y_{0i}|T_i=1)-E(Y_{0i}|T_i=0))  \\
-&= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1)E(Y_{1i}|T_i=0) +  E(Y_{0i}|T_i=0)-E(Y_{0i}|T_i=1)
-\end{aligned}
-$$
-
-
-- The identification assumption(s): 
-
-It assumes that the difference of the treated and control group remains constant after the treatment. It tries to eliminate the selection bias by simply subtracting the difference between these two groups before the treatment. 
-
-- An example:
-
-- Anything particular about standard errors:
-
-
-<br>
-Instrumenting for an endogenous regressor, $X_i$, with an instrument, $Z_i$, in order to retrieve an estimate of the causal effect of $X_i$ on $Y_i$. 
-
-- The intuition behind it:
-
-We control for the bad variation of $X_i$ by regressing it with respect to $Z_i$. We use fitted $X_i$ to estimate the causal effect of $X_i$ on $Y_i$. 
-
-- The identification assumption(s): 
-
-- An example:
-
-- Anything particular about standard errors:
-
-
-<br>
-A regression-discontinuity approach to estimating the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
-
-- The intuition behind it:
-
-Regression-discontinuity approach estimates the difference of $Y_i$ before and after a certain threshold. If this is something that is not obvious in plots, we use running variable to capture the difference of $X_i$ before and after a certain threshold. Then use that running variable to capture the difference of $Y_i$. [NEED MORE JUSTIFICATION HERE] [HOW IS IT RELEVANT TO THE IV?] [HOW CAN THIS BE RELEVANT TO DID]
-
-- The identification assumption(s): 
-
-- An example:
-
-- Anything particular about standard errors:
-
 
 
 ## Ideas
