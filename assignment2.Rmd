@@ -1,0 +1,569 @@
+---
+title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
+author: YOURNAME
+date: "Winter 2020"
+#date: "<br>`r format(Sys.time(), '%d %B %Y')`"
+header-includes:
+  - \usepackage{mathtools}
+  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+  - \usepackage{amssymb}
+output: 
+  html_document:
+    toc: false
+    toc_depth: 3  
+    number_sections: false
+    theme: flatly
+    highlight: tango  
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+---
+
+```{r Setup, include = F}
+options(htmltools.dir.version = FALSE)
+library(pacman)
+p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr)
+# Define pink color
+red_pink <- "#e64173"
+turquoise <- "#20B2AA"
+orange <- "#FFA500"
+red <- "#fb6107"
+blue <- "#3b3b9a"
+green <- "#8bb174"
+grey_light <- "grey70"
+grey_mid <- "grey50"
+grey_dark <- "grey20"
+purple <- "#6A5ACD"
+slate <- "#314f4f"
+# Dark slate grey: #314f4f
+# Notes directory
+dir_slides <- "~/Dropbox/Courses/"
+# Knitr options
+opts_chunk$set(
+  comment = "#>",
+  fig.align = "center",
+  fig.height = 4,
+  fig.width = 6,
+  # dpi = 300,
+  cache = T,
+  warning = F,
+  message = F,
+  eval = F, 
+  echo = F
+)
+# A blank theme for ggplot
+theme_empty <- theme_bw() + theme(
+  line = element_blank(),
+  rect = element_blank(),
+  strip.text = element_blank(),
+  axis.text = element_blank(),
+  plot.title = element_blank(),
+  axis.title = element_blank(),
+  plot.margin = structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_simple <- theme_bw() + theme(
+  line = element_blank(),
+  panel.grid = element_blank(),
+  rect = element_blank(),
+  axis.text.x = element_text(size = 10),
+  axis.text.y = element_text(size = 10),
+  axis.ticks = element_blank(),
+  plot.title = element_blank(),
+  axis.title.x = element_text(angle = 0, vjust = 0.5),
+  axis.title.y = element_text(angle = 90, vjust = 0.5),
+  legend.position = "none",
+  axis.line = element_line(color="black", size = .5)
+)
+```
+
+
+> Can I propose something like each of is having a master file... like this one... that we each use to collect our thoughts as we work through the next ten weeks? 
+
+
+
+# {.tabset .tabset-fade .tabset-pills}
+
+
+## A1 - OVB simulation
+
+> Due date: 12 January 2020
+>
+> Please have your simulation ready to share in class on Tuesday.
+
+When people make the claim that _correlation does not imply causation_, they usually mean that the existence of some correlation between $y$ and $x_1$ does not imply that variation in $x_1$ _causes_ variation in $y$.
+
+- That is, they tend to be acknowledging that you can have correlation without causation
+
+**Assignment** Propose and simulate a data-generating process in which (**i**) causation runs from $x_1$ to $y$ but at the same time (**ii**) the correlation of $y$ and $x_1$ is zero. Write it in an Rmd file and make the argument visually.
+
+- Yes, at the end of this you should have simulated something (good) and demonstrated that the lack of correlation does not imply lack of causation (which is like a party trick).
+
+
+## A2- Estimators
+
+> Due date: tbd
+
+_For each scenario below, first describe the intuition of the estimator---what is being compared, what problems it fixes, why it works. Second, the identification strategy, inclusive of the assumption required for the identification of a causal parameter.  Third, provide an example of the estimator in use, inclusive of the specific assumptions that would be operational in that example. (Examples can be from existing literature, or from your own research program.) Fourth, comment on any particularly relevant considerations to be made with respect to the estimation of standard errors in each environment. (There may not be.) Responses will be evaluated based on accuracy, completeness and clarity._
+
+
+---
+
+A difference estimate of the effect of $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: 
+
+Suppose we have treated and control group. The difference estimate of the effect of treatment on $y_i$ compares  the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. 
+
+$$
+\begin{aligned}
+E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)
+&= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&= E(Y_{1i}-Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&= \textrm{average treatment effect on the treated} + \textrm{selection bias (pre-treatment)}\\
+&= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) + E(Y_{1i}|T_i=0) - E(Y_{0i}|T_i=0)\\
+&= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) + E(Y_{1i}-Y_{0i}|T_i=0)\\
+&= \textrm{selection bias (post-treatment)}+\textrm{average treatment effect on the control}
+\end{aligned}
+$$
+
+- The identification assumption(s): 
+
+(1) No selection bias before treatment (i.e. the control group could represent the counterfactual for the treated individuals):
+$$E(Y_{0i}|T_i=1)=E(Y_{0i}|T_i=0)$$
+This implies that the expected outcomes of the control group before treatment sufficiently represents the expected outcomes of the treated group. Assigning the treatment randomly allows for control and treated group to be comparable. 
+
+(2) We are interested in looking at average treatment effect on the treated.
+
+(3) 
+$$
+\begin{aligned}
+E(Y_{1i}|D_i=1) = E(Y_i|D_i=1) \\
+E(Y_{0i}|D_i=0) = E(Y_i|D_i=0)
+\end{aligned}
+$$
+
+(4) Treatment is independent of potential outcome. This means that the treatment is randomly assigned so that the wage level before the treatment has no influence over the assignment of the treatment. 
+
+- An example:
+
+Suppose that we are interested in estimating the wage increase in having a Ph.D. degree in Economics. Then the treatment would be holding a Ph.D. degree, and $Y_i$ being the wage of an individual. Suppose we have 100 observations from which 40 of them are holding the degree (i.e. assigned in treated group) and the rest are not (i.e. assigned in control group). Then difference estimator simply takes the average wages for each group and calculate the difference of it. Recall that our interest is to estimate the wage difference in the treated group have they not held a degree. 
+
+- Anything particular about standard errors:
+```{r}
+set.seed(123)
+n = 100
+test_data <- tibble(
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    x = rnorm(n, mean = 10, sd =3),
+    w = rnorm(n, mean = 3, sd=2), 
+    y0 = x + u,
+    y1 = y0 + w + v,
+    t = y1 - y0,
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = (x+e >10) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
+  )
+# difference estimator
+m1 <- lm(y_r ~ d_r, data = test_data)
+summary(m1)
+# matching estimator
+library(MatchIt)
+match.it <- matchit(d_r ~ x + w, data = test_data, method = "nearest", ratio=1)
+df.match = match.data(match.it)
+m2 <- lm(y_r ~ d_r, data = df.match)
+summary(m2)
+# diff-in-diff
+m3 <- lm((y1-y0) ~ d_r, data = test_data)
+summary(m3)
+# iv
+test_data$d_nr = as.factor(test_data$d_nr)
+fsr<- glm(d_nr ~ x, data = test_data, family="binomial")
+# summary(fsr)
+test_data$d_hat = predict(fsr, test_data, type = "response")
+m4 <- lm(y_r ~ d_hat, data = test_data )
+summary(m4)
+# rd
+???
+
+(ate = mean(test_data$t))
+# notice that ate_1 and ols with dummy variable produces the exact same output 
+(ate_1 = mean(test_data[test_data$d_r==1,]$y_r)-mean(test_data[test_data$d_r==0,]$y_r))
+m <- lm(y_r ~ d_r, data = test_data)
+vcov(m)
+sqrt(vcov(m))
+
+summary(lm(y_r ~ d_r, data = test_data))
+(std.error = sqrt(var(test_data$y_r, na.rm=TRUE)/length(test_data$y_r)))
+
+var(ate_1)
+length(ate_1)
+
+fun_iter <- function(iter, n = 10){
+  # Generate data
+  iter_df <- tibble(
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    x = rnorm(n, mean = 10, sd =3),
+    w = rnorm(n, mean = 3, sd=2), 
+    y0 = x + u,
+    y1 = y0 + w + v,
+    t = y1 - y0,
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = (x+e >10) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
+  )
+  ate = mean(iter_df$t)
+  # The difference estimator
+  est_1 = lm(y_r ~ d_r, data = iter_df) %>% broom::tidy()  %>% filter(term == "d_r") 
+  # The difference-in-difference estimator
+  lm(y_r ~ d_r)
+  bind_cols(ate=ate, est_1=est_1, i = iter)
+}
+
+d <- fun_iter(1:4)
+
+p_load(purrr)
+set.seed(1234)
+sim_list <- map(1:1000, fun_iter)
+sim_df <- bind_rows(sim_list)
+mean(sim_df$ate_1)
+sim_df$ate_1
+class(sim_df$ate_1)
+length(sim_df$ate_1)
+var(sim_df$ate_1)
+sd(sim_df$ate_1, na.rm = TRUE)/sqrt(length(sim_df$ate_1[!is.na(sim_df$ate_1)]))
+
+
+length(sim_df$ate_1[!is.na(sim_df$ate_1)])
+
+ggplot(sim_df, aes(x = std.error))+geom_density()+
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0, linetype = "longdash", color = "red") +
+  xlab("Standard error") +
+  ylab("Density") +  theme(legend.position = c(0.8, 0.8))
+```
+
+
+<br>
+A matching-type estimator of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: 
+
+The treatment effect can be calculated by averaging the the difference of each comparable individuals in the treatment and control group. This implies that for a given data, we have multiple treatment effect calculated. By taking the average of that treatment effect, we have a matching-type estimate of the treatment effect. 
+
+- The identification assumption(s): 
+
+That the matched individuals from the two groups are comparable, i.e. exhibit similar attributes except the treatment status. 
+
+- An example:
+
+- Anything particular about standard errors:
+
+
+<br>
+A difference-in-difference estimate of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: 
+
+This estimator considers the difference of the treated and control group in the model. Suppose that the difference of the treated and control group remains constant after the treatment. Then the treatment effect using a difference-in-difference is calculated by subtracting the difference of the treated and control group before the treatment from the observed treated status of the treatment group.  
+
+$$
+\begin{aligned}
+\textrm{Suppose that ATE} 
+&\equiv E(Y_{1i}-Y_{0i})\\
+&= (E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1)) -(E(Y_{1i}|T_i=0) - E(Y_{0i}|T_i=0))\\
+&= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) -(E(Y_{0i}|T_i=1)-E(Y_{0i}|T_i=0))  \\
+&= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1)E(Y_{1i}|T_i=0) +  E(Y_{0i}|T_i=0)-E(Y_{0i}|T_i=1)
+\end{aligned}
+$$
+
+
+- The identification assumption(s): 
+
+It assumes that the difference of the treated and control group remains constant after the treatment. It tries to eliminate the selection bias by simply subtracting the difference between these two groups before the treatment. 
+
+- An example:
+
+- Anything particular about standard errors:
+
+
+<br>
+Instrumenting for an endogenous regressor, $X_i$, with an instrument, $Z_i$, in order to retrieve an estimate of the causal effect of $X_i$ on $Y_i$. 
+
+- The intuition behind it:
+
+We control for the bad variation of $X_i$ by regressing it with respect to $Z_i$. We use fitted $X_i$ to estimate the causal effect of $X_i$ on $Y_i$. 
+
+- The identification assumption(s): 
+
+- An example:
+
+- Anything particular about standard errors:
+
+
+<br>
+A regression-discontinuity approach to estimating the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it:
+
+Regression-discontinuity approach estimates the difference of $Y_i$ before and after a certain threshold. If this is something that is not obvious in plots, we use running variable to capture the difference of $X_i$ before and after a certain threshold. Then use that running variable to capture the difference of $Y_i$. [NEED MORE JUSTIFICATION HERE] [HOW IS IT RELEVANT TO THE IV?] [HOW CAN THIS BE RELEVANT TO DID]
+
+- The identification assumption(s): 
+
+- An example:
+
+- Anything particular about standard errors:
+
+
+
+## Ideas
+
+### Idea 1
+
+1. What is the question being asked of the data?
+<br>  - here
+
+1. Why do I care about it? Why should anyone else care?
+<br>  - here
+
+1. What methodologies are being used to answer the question?
+<br>  - here
+
+1. If a causal claim is being made, what must I assume in order to interpret the relationship as causal? 
+<br>  - here
+
+1. What are the main findings?
+<br>  - here
+
+---
+
+### Idea 2
+
+1. What is the question being asked of the data?
+1. Why do I care about it? Why should anyone else care?
+1. What methodologies are being used to answer the question?
+1. If a causal claim is being made, what must I assume in order to interpret the relationship as causal? 
+1. What are the main findings?
+
+---
+
+Etc.
+
+
+## Sim Example
+
+_When your intuition is exhausted or your confidence is lacking, you need a tool. When your intuition is on point but you also need a confidence boost, you need a tool. When you are writing estimators and you wish to demonstrate its properties, you need a tool._ 
+
+---
+
+> You took Ed Rubin's class... so I know you've seen the material below. I'm providing it here with some editing, so it's in this format, but do consider consulting the material from that class directly. 
+
+---
+
+### The recipe
+
+1. Define a data-generating process (DGP)
+1. Define an estimator or estimators, setting up the test/conditions you're looking for
+1. Set seed and run many iterations of
+<br>  a. Drawing a sample of size n from the DGP
+<br>  b. Conducting the exercise
+<br>  c. Record outcomes
+1. Communicate results
+
+---
+
+### The data-generating process
+
+$$
+\begin{align}
+  \text{Y}_{i} = 1 + e^{0.5 \text{X}_{i}} + \varepsilon_i
+\end{align}
+$$
+where $\text{X}_{i}\sim\mathop{\text{Uniform}}(0, 10)$ and $\varepsilon_i\sim\mathop{N}(0,15)$.
+
+
+```{r, sim_seed, include = F}
+set.seed(12345)
+```
+
+
+```{r, sim_dgp}
+library(pacman)
+p_load(dplyr)
+# Choose a size
+n <- 1000
+# Generate data
+dgp_df <- tibble(
+  ε = rnorm(n, sd = 15),
+  x = runif(n, min = 0, max = 10),
+  y = 1 + exp(0.5 * x) + ε
+)
+```
+
+```{r, sim_dply, printed, echo = F}
+head(dgp_df)
+```
+
+
+**The CEF (in orange), and the population least-squares regression line (in purple)**
+
+```{r, sim_pop_plot3, echo = F}
+ggplot(data = dgp_df, aes(x = x, y = y)) +
+  geom_point(alpha = 0.2, size = 2) +
+  stat_function(fun = function(x) 1 + exp(0.5 * x), alpha = 0.9, color = orange, size = 1.5) +
+  stat_smooth(method = lm, se = F, color = purple, size = 2) +
+  theme_simple 
+```
+
+---
+
+**Iterating**
+
+To make iterating easier, let's wrap our DGP in a function.
+
+```{r, sim_fun}
+fun_iter <- function(iter, n = 30) {
+  # Generate data
+  iter_df <- tibble(
+    ε = rnorm(n, sd = 15),
+    x = runif(n, min = 0, max = 10),
+    y = 1 + exp(0.5 * x) + ε
+  )
+}
+```
+We still need to run a regression and draw inference
+
+---
+
+### Inference
+
+We will use `lm_robust()` from the `estimatr` package for OLS and inference.
+
+- `se_type = "classical"` provides homoskedasticity-assuming SEs
+- `se_type = "HC2"` provides heteroskedasticity-robust SEs
+- `lm()` works for "spherical" standard errors but cannot calculate het-robust standard errors
+
+```{r, ex_lm_robust}
+lm_robust(y ~ x, data = dgp_df, se_type = "classical") %>% tidy() %>% select(1:5)
+lm_robust(y ~ x, data = dgp_df, se_type = "HC2") %>% tidy() %>% select(1:5)
+```
+
+---
+
+Now add these estimators to our iteration function...
+
+```{r, sim_fun2}
+fun_iter <- function(iter, n = 30) {
+  # Generate data
+  iter_df <- tibble(
+    ε = rnorm(n, sd = 15),
+    x = runif(n, min = 0, max = 10),
+    y = 1 + exp(0.5 * x) + ε
+  )
+  # Estimate models
+  lm1 <- lm_robust(y ~ x, data = iter_df, se_type = "classical")
+  lm2 <- lm_robust(y ~ x, data = iter_df, se_type = "HC2")
+  # Stack and return results
+  bind_rows(tidy(lm1), tidy(lm2)) %>%
+    select(1:5) %>% filter(term == "x") %>%
+    mutate(se_type = c("classical", "HC2"), i = iter)
+}
+```
+
+
+With that function in hand, let's run it 1,000 times.
+
+
+There are a lot of ways to run a single function over a list/vector of values.
+
+- `lapply()`, _e.g._, `lapply(X = 1:3, FUN = sqrt)`
+- `for()`, _e.g._, `for (x in 1:3) sqrt(x)`
+- `map()` from `purrr`, _e.g._, `map(1:3, sqrt)`
+
+Let's go with `map()` from the `purrr` package because it easily parallelizes across platforms using the `furrr` package.
+
+**Alternative 1: 1,000 iterations**
+
+```{r, ex_sim, eval = F}
+# Packages
+p_load(purrr)
+# Set seed
+set.seed(12345)
+# Run 1,000 iterations
+sim_list <- map(1:1e3, fun_iter)
+```
+
+**Alternative 2: Parallelized 1,000 iterations**
+
+```{r, ex_sim2, eval = F, cache = T}
+# Packages
+p_load(purrr, furrr)
+# Set options
+set.seed(123)
+# Tell R to parallelize
+plan(multiprocess)
+# Run 10,000 iterations
+sim_list <- future_map(
+  1:1e3, fun_iter,
+  .options = future_options(seed = T)
+)
+```
+
+The `furrr` package (`future` + `purrr`) makes parallelization easy
+
+Our `fun_iter()` function returns a `data.frame`, and `future_map()` returns a `list` (of the returned objects).
+
+So `sim_list` is going to be a `list` of `data.frame` objects. We can bind them into one `data.frame` with `bind_rows()`.
+
+```{r, sim_bind}
+# Bind list together
+sim_df <- bind_rows(sim_list)
+```
+
+---
+
+### And the results?
+
+Comparing the distributions of standard errors for the coefficient on $x$
+
+```{r, sim_plot1, echo = F}
+ggplot(data = sim_df, aes(x = std.error, fill = se_type)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  xlab("Standard error") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("Classical", "Het. Robust"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+  theme_simple + theme(legend.position = c(0.8, 0.8))
+```
+
+
+Comparing the distributions of $t$ statistics for the coefficient on $x$
+
+```{r, sim_plot2, echo = F}
+ggplot(data = sim_df, aes(x = statistic, fill = se_type)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = qt(0.975, df = 28), linetype = "longdash", color = red_pink) +
+  xlab("t statistic") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("Classical", "Het. Robust"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+  theme_simple + theme(legend.position = c(0.8, 0.8))
+```
+
+
+
+
+
+
