@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="YOURNAME" />
+<meta name="author" content="Boyoon Chang" />
 
 
 <title>Micro-metrics, Glen Waddell</title>
@@ -465,7 +465,7 @@ summary {
 
 
 <h1 class="title toc-ignore">Micro-metrics, <a href="https://glenwaddell.com">Glen Waddell</a></h1>
-<h4 class="author">YOURNAME</h4>
+<h4 class="author">Boyoon Chang</h4>
 <h4 class="date">Winter 2020</h4>
 
 </div>
@@ -664,10 +664,9 @@ summary {
 </blockquote>
 <p><em>For each scenario below, first describe the intuition of the estimator—what is being compared, what problems it fixes, why it works. Second, the identification strategy, inclusive of the assumption required for the identification of a causal parameter. Third, provide an example of the estimator in use, inclusive of the specific assumptions that would be operational in that example. (Examples can be from existing literature, or from your own research programme.) Fourth, comment on any particularly relevant considerations to be made with respect to the estimation of standard errors in each environment. (There may not be.) Responses will be evaluated based on accuracy, completeness and clarity.</em></p>
 <hr />
-<div id="a-difference-estimate-of-the-effect-of-mathbb1t_i1-on-y_i." class="section level3">
-<h3>A difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</h3>
+<p>A difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
 <ul>
-<li>The intuition behind it: Suppose we have treated and control group. The difference estimate is just the difference of the two group’s average. The difference estimate of the effect of treatment on <span class="math inline">\(y_i\)</span> compare the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. Therefore, it is the difference in average outcome between two groups.</li>
+<li>The intuition behind it: Suppose we have treated and control group. The difference estimate is just the difference of the two group’s average. The difference estimator compares the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. Therefore, it is the difference in average outcome between the two groups.</li>
 </ul>
 <p><span class="math display">\[
 \begin{aligned}
@@ -688,111 +687,15 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 <ol style="list-style-type: lower-alpha">
 <li>Treatment is independent of potential outcome and thus there is no selection bias prior the treatment. This means that the treatment is randomly assigned so that the group’s status prior the treatment has no influence over the assignment of the treatment.</li>
 <li>The control group could sufficiently represent the counter-factual for the treated group (<span class="math inline">\(E(Y_{0i}|T_i=1)=E(Y_{0i}|T_i=0)\)</span>). This implies that the expected outcomes of the control group before treatment sufficiently represents the expected outcomes of the treated group. Assigning the treatment randomly allows for control and treated group to be comparable.</li>
-<li>We are interested in the average treatment effect on the treated.</li>
+<li>Regard average treatment effect as the average treatment effect on the treated.</li>
 <li>All individuals within the treated group are treated. All individuals within the control are not treated. In other words, all individuals within the assigned groups complied to the treatment status.</li>
-<li>It assumes that there are not other reasons for the change in mean outcomes before and after the treatment. Then the treatment dummy variable stands for the impact of all factors that are different earlier and later periods.</li>
+<li>It assumes that there are not other reasons for the change in mean outcomes before and after the treatment. That is, the treatment dummy variable stands for the impact of all factors that are different earlier and later periods.</li>
 </ol>
 <ul>
-<li><p>An example: Suppose that we are interested in estimating the wage increase in having a Ph.D. degree in Economics. Then the treatment would be holding a Ph.D. degree, and <span class="math inline">\(Y_i\)</span> being the wage of an individual. Suppose we have 100 observations from which 40 of them are holding the degree (i.e. assigned in treated group) and the rest are not (i.e. assigned in control group). Then difference estimator simply takes the average wages for each group and calculate the difference of it. Recall that our interest is to estimate the wage difference in the treated group have they not held a degree.</p></li>
+<li><p>An example: Suppose that we are interested in estimating the wage increase in having a Ph.D. degree in Economics. Then the treatment would be holding a Ph.D. degree, and <span class="math inline">\(Y_i\)</span> being the wage of an individual. Suppose we have 100 observations from which 40 of them are holding the degree (i.e. assigned in treated group) and the rest are not (i.e. assigned in control group). Then difference estimator simply takes the average wage for each group and calculate the difference of the two averages. Recall that our interest is to estimate the wage difference in the treated group have they not held a degree.</p></li>
 <li><p>Anything particular about standard errors: Depending on the selection of the sample, the standard error of the point estimate of the treatment effect could be large.</p></li>
 </ul>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a><span class="kw">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb13-2"><a href="#cb13-2"></a>n =<span class="st"> </span><span class="dv">100</span></span>
-<span id="cb13-3"><a href="#cb13-3"></a>test_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
-<span id="cb13-4"><a href="#cb13-4"></a>    <span class="dt">u =</span> <span class="kw">runif</span>(n, <span class="dv">-10</span>, <span class="dv">10</span>), </span>
-<span id="cb13-5"><a href="#cb13-5"></a>    <span class="dt">v =</span> <span class="kw">runif</span>(n, <span class="dv">-5</span>,<span class="dv">5</span>),</span>
-<span id="cb13-6"><a href="#cb13-6"></a>    <span class="dt">e =</span> <span class="kw">runif</span>(n, <span class="dv">-1</span>,<span class="dv">1</span>),</span>
-<span id="cb13-7"><a href="#cb13-7"></a>    <span class="dt">x =</span> <span class="kw">rnorm</span>(n, <span class="dt">mean =</span> <span class="dv">10</span>, <span class="dt">sd =</span><span class="dv">3</span>),</span>
-<span id="cb13-8"><a href="#cb13-8"></a>    <span class="dt">w =</span> <span class="kw">rnorm</span>(n, <span class="dt">mean =</span> <span class="dv">3</span>, <span class="dt">sd=</span><span class="dv">2</span>), </span>
-<span id="cb13-9"><a href="#cb13-9"></a>    <span class="dt">y0 =</span> x <span class="op">+</span><span class="st"> </span>u,</span>
-<span id="cb13-10"><a href="#cb13-10"></a>    <span class="dt">y1 =</span> y0 <span class="op">+</span><span class="st"> </span>w <span class="op">+</span><span class="st"> </span>v,</span>
-<span id="cb13-11"><a href="#cb13-11"></a>    <span class="dt">t =</span> y1 <span class="op">-</span><span class="st"> </span>y0,</span>
-<span id="cb13-12"><a href="#cb13-12"></a>    <span class="dt">d_r =</span> <span class="kw">sample</span>(<span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">0</span>), n, <span class="dt">replace =</span> <span class="ot">TRUE</span>),</span>
-<span id="cb13-13"><a href="#cb13-13"></a>    <span class="dt">d_nr =</span> (x<span class="op">+</span>e <span class="op">&gt;</span><span class="dv">10</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.numeric</span>(),</span>
-<span id="cb13-14"><a href="#cb13-14"></a>    <span class="dt">y_r =</span> y0 <span class="op">+</span><span class="st"> </span>d_r<span class="op">*</span>t,</span>
-<span id="cb13-15"><a href="#cb13-15"></a>    <span class="dt">y_nr =</span> y0<span class="op">+</span><span class="st"> </span>d_nr<span class="op">*</span>t</span>
-<span id="cb13-16"><a href="#cb13-16"></a>  )</span>
-<span id="cb13-17"><a href="#cb13-17"></a><span class="co"># difference estimator</span></span>
-<span id="cb13-18"><a href="#cb13-18"></a>m1 &lt;-<span class="st"> </span><span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> test_data)</span>
-<span id="cb13-19"><a href="#cb13-19"></a><span class="kw">summary</span>(m1)</span>
-<span id="cb13-20"><a href="#cb13-20"></a><span class="co"># matching estimator</span></span>
-<span id="cb13-21"><a href="#cb13-21"></a><span class="kw">library</span>(MatchIt)</span>
-<span id="cb13-22"><a href="#cb13-22"></a>match.it &lt;-<span class="st"> </span><span class="kw">matchit</span>(d_r <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>w, <span class="dt">data =</span> test_data, <span class="dt">method =</span> <span class="st">&quot;nearest&quot;</span>, <span class="dt">ratio=</span><span class="dv">1</span>)</span>
-<span id="cb13-23"><a href="#cb13-23"></a>df.match =<span class="st"> </span><span class="kw">match.data</span>(match.it)</span>
-<span id="cb13-24"><a href="#cb13-24"></a>m2 &lt;-<span class="st"> </span><span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> df.match)</span>
-<span id="cb13-25"><a href="#cb13-25"></a><span class="kw">summary</span>(m2)</span>
-<span id="cb13-26"><a href="#cb13-26"></a><span class="co"># diff-in-diff</span></span>
-<span id="cb13-27"><a href="#cb13-27"></a>m3 &lt;-<span class="st"> </span><span class="kw">lm</span>((y1<span class="op">-</span>y0) <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> test_data)</span>
-<span id="cb13-28"><a href="#cb13-28"></a><span class="kw">summary</span>(m3)</span>
-<span id="cb13-29"><a href="#cb13-29"></a><span class="co"># iv</span></span>
-<span id="cb13-30"><a href="#cb13-30"></a>test_data<span class="op">$</span>d_nr =<span class="st"> </span><span class="kw">as.factor</span>(test_data<span class="op">$</span>d_nr)</span>
-<span id="cb13-31"><a href="#cb13-31"></a>fsr&lt;-<span class="st"> </span><span class="kw">glm</span>(d_nr <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> test_data, <span class="dt">family=</span><span class="st">&quot;binomial&quot;</span>)</span>
-<span id="cb13-32"><a href="#cb13-32"></a><span class="co"># summary(fsr)</span></span>
-<span id="cb13-33"><a href="#cb13-33"></a>test_data<span class="op">$</span>d_hat =<span class="st"> </span><span class="kw">predict</span>(fsr, test_data, <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>)</span>
-<span id="cb13-34"><a href="#cb13-34"></a>m4 &lt;-<span class="st"> </span><span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_hat, <span class="dt">data =</span> test_data )</span>
-<span id="cb13-35"><a href="#cb13-35"></a><span class="kw">summary</span>(m4)</span>
-<span id="cb13-36"><a href="#cb13-36"></a><span class="co"># rd</span></span>
-<span id="cb13-37"><a href="#cb13-37"></a>???</span>
-<span id="cb13-38"><a href="#cb13-38"></a></span>
-<span id="cb13-39"><a href="#cb13-39"></a>(<span class="dt">ate =</span> <span class="kw">mean</span>(test_data<span class="op">$</span>t))</span>
-<span id="cb13-40"><a href="#cb13-40"></a><span class="co"># notice that ate_1 and ols with dummy variable produces the exact same output </span></span>
-<span id="cb13-41"><a href="#cb13-41"></a>(<span class="dt">ate_1 =</span> <span class="kw">mean</span>(test_data[test_data<span class="op">$</span>d_r<span class="op">==</span><span class="dv">1</span>,]<span class="op">$</span>y_r)<span class="op">-</span><span class="kw">mean</span>(test_data[test_data<span class="op">$</span>d_r<span class="op">==</span><span class="dv">0</span>,]<span class="op">$</span>y_r))</span>
-<span id="cb13-42"><a href="#cb13-42"></a>m &lt;-<span class="st"> </span><span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> test_data)</span>
-<span id="cb13-43"><a href="#cb13-43"></a><span class="kw">vcov</span>(m)</span>
-<span id="cb13-44"><a href="#cb13-44"></a><span class="kw">sqrt</span>(<span class="kw">vcov</span>(m))</span>
-<span id="cb13-45"><a href="#cb13-45"></a></span>
-<span id="cb13-46"><a href="#cb13-46"></a><span class="kw">summary</span>(<span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> test_data))</span>
-<span id="cb13-47"><a href="#cb13-47"></a>(<span class="dt">std.error =</span> <span class="kw">sqrt</span>(<span class="kw">var</span>(test_data<span class="op">$</span>y_r, <span class="dt">na.rm=</span><span class="ot">TRUE</span>)<span class="op">/</span><span class="kw">length</span>(test_data<span class="op">$</span>y_r)))</span>
-<span id="cb13-48"><a href="#cb13-48"></a></span>
-<span id="cb13-49"><a href="#cb13-49"></a><span class="kw">var</span>(ate_<span class="dv">1</span>)</span>
-<span id="cb13-50"><a href="#cb13-50"></a><span class="kw">length</span>(ate_<span class="dv">1</span>)</span>
-<span id="cb13-51"><a href="#cb13-51"></a></span>
-<span id="cb13-52"><a href="#cb13-52"></a>fun_iter &lt;-<span class="st"> </span><span class="cf">function</span>(iter, <span class="dt">n =</span> <span class="dv">10</span>){</span>
-<span id="cb13-53"><a href="#cb13-53"></a>  <span class="co"># Generate data</span></span>
-<span id="cb13-54"><a href="#cb13-54"></a>  iter_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
-<span id="cb13-55"><a href="#cb13-55"></a>    <span class="dt">u =</span> <span class="kw">runif</span>(n, <span class="dv">-10</span>, <span class="dv">10</span>), </span>
-<span id="cb13-56"><a href="#cb13-56"></a>    <span class="dt">v =</span> <span class="kw">runif</span>(n, <span class="dv">-5</span>,<span class="dv">5</span>),</span>
-<span id="cb13-57"><a href="#cb13-57"></a>    <span class="dt">e =</span> <span class="kw">runif</span>(n, <span class="dv">-1</span>,<span class="dv">1</span>),</span>
-<span id="cb13-58"><a href="#cb13-58"></a>    <span class="dt">x =</span> <span class="kw">rnorm</span>(n, <span class="dt">mean =</span> <span class="dv">10</span>, <span class="dt">sd =</span><span class="dv">3</span>),</span>
-<span id="cb13-59"><a href="#cb13-59"></a>    <span class="dt">w =</span> <span class="kw">rnorm</span>(n, <span class="dt">mean =</span> <span class="dv">3</span>, <span class="dt">sd=</span><span class="dv">2</span>), </span>
-<span id="cb13-60"><a href="#cb13-60"></a>    <span class="dt">y0 =</span> x <span class="op">+</span><span class="st"> </span>u,</span>
-<span id="cb13-61"><a href="#cb13-61"></a>    <span class="dt">y1 =</span> y0 <span class="op">+</span><span class="st"> </span>w <span class="op">+</span><span class="st"> </span>v,</span>
-<span id="cb13-62"><a href="#cb13-62"></a>    <span class="dt">t =</span> y1 <span class="op">-</span><span class="st"> </span>y0,</span>
-<span id="cb13-63"><a href="#cb13-63"></a>    <span class="dt">d_r =</span> <span class="kw">sample</span>(<span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">0</span>), n, <span class="dt">replace =</span> <span class="ot">TRUE</span>),</span>
-<span id="cb13-64"><a href="#cb13-64"></a>    <span class="dt">d_nr =</span> (x<span class="op">+</span>e <span class="op">&gt;</span><span class="dv">10</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as.numeric</span>(),</span>
-<span id="cb13-65"><a href="#cb13-65"></a>    <span class="dt">y_r =</span> y0 <span class="op">+</span><span class="st"> </span>d_r<span class="op">*</span>t,</span>
-<span id="cb13-66"><a href="#cb13-66"></a>    <span class="dt">y_nr =</span> y0<span class="op">+</span><span class="st"> </span>d_nr<span class="op">*</span>t</span>
-<span id="cb13-67"><a href="#cb13-67"></a>  )</span>
-<span id="cb13-68"><a href="#cb13-68"></a>  ate =<span class="st"> </span><span class="kw">mean</span>(iter_df<span class="op">$</span>t)</span>
-<span id="cb13-69"><a href="#cb13-69"></a>  <span class="co"># The difference estimator</span></span>
-<span id="cb13-70"><a href="#cb13-70"></a>  est_<span class="dv">1</span> =<span class="st"> </span><span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r, <span class="dt">data =</span> iter_df) <span class="op">%&gt;%</span><span class="st"> </span>broom<span class="op">::</span><span class="kw">tidy</span>()  <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(term <span class="op">==</span><span class="st"> &quot;d_r&quot;</span>) </span>
-<span id="cb13-71"><a href="#cb13-71"></a>  <span class="co"># The difference-in-difference estimator</span></span>
-<span id="cb13-72"><a href="#cb13-72"></a>  <span class="kw">lm</span>(y_r <span class="op">~</span><span class="st"> </span>d_r)</span>
-<span id="cb13-73"><a href="#cb13-73"></a>  <span class="kw">bind_cols</span>(<span class="dt">ate=</span>ate, <span class="dt">est_1=</span>est_<span class="dv">1</span>, <span class="dt">i =</span> iter)</span>
-<span id="cb13-74"><a href="#cb13-74"></a>}</span>
-<span id="cb13-75"><a href="#cb13-75"></a></span>
-<span id="cb13-76"><a href="#cb13-76"></a>d &lt;-<span class="st"> </span><span class="kw">fun_iter</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">4</span>)</span>
-<span id="cb13-77"><a href="#cb13-77"></a></span>
-<span id="cb13-78"><a href="#cb13-78"></a><span class="kw">p_load</span>(purrr)</span>
-<span id="cb13-79"><a href="#cb13-79"></a><span class="kw">set.seed</span>(<span class="dv">1234</span>)</span>
-<span id="cb13-80"><a href="#cb13-80"></a>sim_list &lt;-<span class="st"> </span><span class="kw">map</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">1000</span>, fun_iter)</span>
-<span id="cb13-81"><a href="#cb13-81"></a>sim_df &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(sim_list)</span>
-<span id="cb13-82"><a href="#cb13-82"></a><span class="kw">mean</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)</span>
-<span id="cb13-83"><a href="#cb13-83"></a>sim_df<span class="op">$</span>ate_<span class="dv">1</span></span>
-<span id="cb13-84"><a href="#cb13-84"></a><span class="kw">class</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)</span>
-<span id="cb13-85"><a href="#cb13-85"></a><span class="kw">length</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)</span>
-<span id="cb13-86"><a href="#cb13-86"></a><span class="kw">var</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)</span>
-<span id="cb13-87"><a href="#cb13-87"></a><span class="kw">sd</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)<span class="op">/</span><span class="kw">sqrt</span>(<span class="kw">length</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>[<span class="op">!</span><span class="kw">is.na</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)]))</span>
-<span id="cb13-88"><a href="#cb13-88"></a></span>
-<span id="cb13-89"><a href="#cb13-89"></a></span>
-<span id="cb13-90"><a href="#cb13-90"></a><span class="kw">length</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>[<span class="op">!</span><span class="kw">is.na</span>(sim_df<span class="op">$</span>ate_<span class="dv">1</span>)])</span>
-<span id="cb13-91"><a href="#cb13-91"></a></span>
-<span id="cb13-92"><a href="#cb13-92"></a><span class="kw">ggplot</span>(sim_df, <span class="kw">aes</span>(<span class="dt">x =</span> std.error))<span class="op">+</span><span class="kw">geom_density</span>()<span class="op">+</span></span>
-<span id="cb13-93"><a href="#cb13-93"></a><span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>) <span class="op">+</span></span>
-<span id="cb13-94"><a href="#cb13-94"></a><span class="st">  </span><span class="kw">geom_vline</span>(<span class="dt">xintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="st">&quot;longdash&quot;</span>, <span class="dt">color =</span> <span class="st">&quot;red&quot;</span>) <span class="op">+</span></span>
-<span id="cb13-95"><a href="#cb13-95"></a><span class="st">  </span><span class="kw">xlab</span>(<span class="st">&quot;Standard error&quot;</span>) <span class="op">+</span></span>
-<span id="cb13-96"><a href="#cb13-96"></a><span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Density&quot;</span>) <span class="op">+</span><span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="kw">c</span>(<span class="fl">0.8</span>, <span class="fl">0.8</span>))</span></code></pre></div>
-<p><br> #### A matching-type estimator of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<p><br> A matching-type estimator of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
 <ul>
 <li><p>The intuition behind it: The treatment effect can be calculated by averaging the the differences in outcomes of each comparable individuals in the treatment and control group. A matching-type estimator first pairs up the individuals from the treated and control group based on given covariates. Then for each matching pair, treatment effect is calculated by taking the difference in the outcome. Lastly, by taking the average of those differences, we have a matching-type estimate of the treatment effect. A matching-type estimator helps to mitigate the fundamental problem of causal inference by using an individual with similar characteristics as a counterfactual of the treated individual.</p></li>
 <li><p>The identification assumption(s):</p></li>
@@ -800,30 +703,30 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 <ol style="list-style-type: lower-alpha">
 <li>Treated and control group share the same covariates and these covariates are observable.<br />
 </li>
-<li>Conditional independence assumption: Conditional on observed characteristics <span class="math inline">\(X\)</span>, the assignment of treatment is independent of the treatment-specific outcomes and selection bias disappears. Recall CIA is satisfied if <span class="math inline">\(X\)</span> includes all variables that affect both participation and outcomes.</li>
-<li>Conditional on observed characteristics <span class="math inline">\(X_i\)</span>, the probability of being assigned to treated group is in between 0 and 1 (<span class="math inline">\(Pr(T=1|X=x&#39;) \in (0,1)\)</span>). This implies a positive probability of observing nonparticipants(individuals in control group) at each level of <span class="math inline">\(X\)</span>. Notice that if <span class="math inline">\(Pr(T=1|X=x&#39;)=1\)</span>, the there is no good nonparticipants to use for counterfactuals. (Overlap assumption)</li>
+<li>Conditional independence assumption (CIA): Conditional on observed characteristics <span class="math inline">\(X\)</span>, the assignment of treatment is independent of the treatment-specific outcomes so that selection bias disappears. Recall CIA is satisfied if <span class="math inline">\(X\)</span> includes all variables that affect both participation and outcomes.</li>
+<li>Overlap assumption: Conditional on observed characteristics <span class="math inline">\(X\)</span>, the probability of being assigned to treated group is in between 0 and 1 (<span class="math inline">\(Pr(T=1|X=x&#39;) \in (0,1)\)</span>). This implies a positive probability of observing nonparticipants(individuals in control group) at each level of <span class="math inline">\(X\)</span>. Notice that if <span class="math inline">\(Pr(T=1|X=x&#39;)=1\)</span>, the there is no good nonparticipants to use as counterfactuals.</li>
 </ol>
 <ul>
-<li><p>An example: To the extension of the previous example, suppose we have ability and family background as covariates in addition to the treatment status and the wage. Then a matching-type estimator would pair the participants in the treated group to the closest non-participants in the control group that has similar ability and family background.</p></li>
-<li><p>Anything particular about standard errors: The standard error of the point estimate of treatment effect from matching-type estimator could be large. This is true depending on which of the non-participants in control group is selected as counterfactual of a treated individual. This could occur if there are multiple non-participants in control group for given set of values of <span class="math inline">\(X\)</span>. This could also happen depending on which covariates are used for matching pairs.</p></li>
+<li><p>An example: To the extension of the previous example, suppose we have ability and family background as covariates in addition to the treatment status that affect the wage. Then a matching-type estimator would pair the participants in the treated group to the closest non-participants in the control group that have similar ability and family background, estimate the differences in wages of those matched pairs and take the average of them.</p></li>
+<li><p>Anything particular about standard errors: The standard error of the point estimate of treatment effect from matching-type estimator could be large. This is true depending on which of the non-participants in control group is selected as counterfactual of a treated individual. This could occur if there are multiple non-participants in control group for given set of values of <span class="math inline">\(X\)</span>. This could also happen depending on which covariates are selected for matching pairs.</p></li>
 </ul>
 <p><br> A difference-in-difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>. (here)</p>
 <ul>
-<li><p>The intuition behind it: Difference-in-difference estimator is the time dimension added version of difference estimator. In contrast to the previous estimators, we introduce time dimension for a difference-in-difference estimator. A difference-in-difference estimator compares the differences in average outcome in the treated group and control group across time. Suppose that the treated and control group shares the same time trend. The difference-in-difference estimator isolates such trend component from the outcomes of the treated individuals. It does so by subtracting the differences in post-treatment and pre-treatment means for the control group from the difference in the post-treatment and pre-treatment means for the treated group.</p></li>
-<li><p>The identification assumption(s): All the OLS model assumptions apply for DiD. In addition, DiD assumes parallel trend assumption. This implies that the both the treatment and the control group share the same trend.</p></li>
-<li><p>An example: To the extension of the previous example, suppose for each individual that entered the Ph.D. program, we observe the wage level of her before entering the program (i.e. wage at t = 1) and after the completion of the program (i.e. wage at t = 2). Also suppose that for each individual that are not planning on getting a Ph.D. degree, we observe the wage level of her during the same time horizon (t = 1, 2). Then a simple statistical formulation of the model is then <span class="math inline">\(Y_{it} = \beta_0 + \beta_1 S_t + \beta_2 T_i + \beta_3 (S_t\times T_i) + \varepsilon_{it}\)</span>, where <span class="math inline">\(S_t\)</span> is time dummy ( <span class="math inline">\(S_t = 0\)</span> if <span class="math inline">\(t=1\)</span> and <span class="math inline">\(S_t=1\)</span> if <span class="math inline">\(t=2\)</span>), and <span class="math inline">\(T_i\)</span> is treatment dummy. The difference-in-difference estimate would then be <span class="math inline">\(\beta_4\)</span> which represents <span class="math inline">\((E(Y_{i2}|T_i=1)- E(Y_{i1}|T_i=1))-E(Y_{i2}|T_i=0)- E(Y_{i1}|T_i=0)\)</span>.</p></li>
-<li><p>Anything particular about standard errors:</p></li>
+<li><p>The intuition behind it: Difference-in-difference estimator is the time dimension added version of difference estimator and is used to estimate the average treatment effect. By including time dimension, the estimator addresses serial correlation of the outcomes. A difference-in-difference estimator compares the differences in average outcome in the treated group and control group across time. Suppose that the treated and control group share the same time trend. The difference-in-difference estimator isolates such trend component from the outcomes of the treated individuals. It does so by subtracting the differences in post-treatment and pre-treatment means of the control group from the difference in the post-treatment and pre-treatment means of the treated group.</p></li>
+<li><p>The identification assumption(s): All the OLS model assumptions apply for DiD if we run a regression for DiD estimator. In addition, DiD assumes parallel trend assumption. This implies that both treatment and control group share the same time trend in the absence of the intervention of treatment. The allocation of the treatment is unrelated to outcome at baseline. Composition of comparison group remains constant across time. There is no spill-over effect and variation in treatment.</p></li>
+<li><p>An example: To the extension of the previous example, suppose for each individual that holds Ph.D. degree, we observe her past wage level without the degree (i.e. wage at t = 1) and also her present wage level with the degree (i.e. wage at t = 2). Also suppose that for each individual that are not planning on getting a Ph.D. degree, we observe the wage level of her during the same time horizon (t = 1, 2). Then a simple statistical formulation of the model is <span class="math inline">\(Y_{it} = \beta_0 + \beta_1 S_t + \beta_2 T_i + \beta_3 (S_t\times T_i) + \varepsilon_{it}\)</span>, where <span class="math inline">\(S_t\)</span> is time dummy ( <span class="math inline">\(S_t = 0\)</span> if <span class="math inline">\(t=1\)</span> and <span class="math inline">\(S_t=1\)</span> if <span class="math inline">\(t=2\)</span>), and <span class="math inline">\(T_i\)</span> is the treatment dummy. The difference-in-difference estimate would then be <span class="math inline">\(\beta_4\)</span> which represents <span class="math inline">\((E(Y_{i2}|T_i=1)- E(Y_{i1}|T_i=1))-(E(Y_{i2}|T_i=0)- E(Y_{i1}|T_i=0))\)</span>.</p></li>
+<li><p>Anything particular about standard errors: It is helpful to use robust standard errors to account for autocorrelation or correlation within identical individual or group before and after the treatment.</p></li>
 </ul>
 <p><br> Instrumenting for an endogenous regressor, <span class="math inline">\(X_i\)</span>, with an instrument, <span class="math inline">\(Z_i\)</span>, in order to retrieve an estimate of the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
 <ul>
-<li><p>The intuition behind it: We control for the bad variation of <span class="math inline">\(X_i\)</span> by regressing it with respect to <span class="math inline">\(Z_i\)</span>. We use the fitted <span class="math inline">\(X_i\)</span> to estimate the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>. IV methods solve for bias from measurement error in regression models. Recall that a regression coefficients is biased toward zero if the regressors contain noise or measurement error. IV also solves for omitted variable bias in a sense that it isolates irrelevant variation of the endogenous regressors.</p></li>
+<li><p>The intuition behind it: We control for the bad variation of <span class="math inline">\(X_i\)</span> by regressing it with respect to <span class="math inline">\(Z_i\)</span>. We use the fitted <span class="math inline">\(X_i\)</span> to estimate the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>. IV methods solve for bias from measurement error in regression models. Recall that a regression coefficients is biased toward zero if the regressors contain large noise or measurement error. IV also solves for omitted variable bias in a sense that it isolates irrelevant variation of the endogenous regressors.</p></li>
 <li><p>The identification assumption(s): The instruments should be relevant in that its variation must be related to the variation in the instrumented variable <span class="math inline">\(X_i\)</span>. The instruments have no effect on <span class="math inline">\(Y_i\)</span> except through <span class="math inline">\(X_i\)</span>. The instruments should be exogenous or predetermined in that they are uncorrelated with the disturbances.</p></li>
-<li><p>An example: Consider a case where we are interested in the returns to schooling. The outcome variable is wage and the variable of interest is education. Here, education is defined to be years of schooling. Suppose education is endogenous, i.e. it is correlated with the error term. OLS estimator no longer produces consistent estimate since exogeneity assumption is violated. Thus we introduce a instrument variable, arguably a variable related to family background or ability, to control for education variable which is endogenous. In general, 2SLS is used for IV estimator so at first stage, education is regressed on the instrument, father’s education (that represents family background) and get the fitted value of education. Then on the second stage, wage is regressed on the fitted value of education. IV estimator produces consistent estimate.</p></li>
+<li><p>An example: Consider a case where we are interested in the returns to schooling. The outcome variable is wage and the variable of interest is education. Here, education is defined to be years of schooling. Suppose education is endogenous, i.e. it is correlated with the error term. OLS estimator no longer produces consistent estimate since exogeneity assumption is violated. Thus we introduce a instrument variable, arguably a variable related to family background or ability, to control for education variable which is endogenous. In general, 2SLS is used for IV estimator so at the first stage, education is regressed on the instrument, father’s education (that represents family background) and get the fitted value of education. Then on the second stage, wage is regressed on the fitted value of education. IV estimator produces consistent estimate.</p></li>
 <li><p>Anything particular about standard errors: Standard error in IV is reported to be in general larger than OLS standard error although IV estimators generate a consistent estimate in contrast to OLS with endogenous regressors. If the instruments are weak, i.e. they have very low correlation with the regressors, the instrumental variable estimators or 2SLS estimators could lead to large or inconsistent standard errors.</p></li>
 </ul>
 <p><br> A regression-discontinuity approach to estimating the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
 <ul>
-<li><p>The intuition behind it: Regression discontinuity is used when we have ``good knowledge about the rules (<span class="math inline">\(X_i\)</span>) determining the treatment(<span class="math inline">\(T_i = \mathbb{I}\{X_i \geq c\}\)</span>)&quot;. In other words, the assignment to treatment is not-random in regression-discontinuity setting. However, researchers have some knowledge that the assignment to treatment is governed at least partly by some threshold value (<span class="math inline">\(c\)</span>) of an observed covariate <span class="math inline">\(X_i\)</span> and that passing this threshold induces a change in potential outcome <span class="math inline">\(Y_i\)</span>. RD then regards the discontinuity of the mean outcome along the covariate at the cutoff value as causal effect of treatment. Regression discontinuity comes in sharp and fuzzy. In sharp RD, we look at the discontinuity in conditional expectation of the outcome given the covariate to calculate an average causal effect of the treatment. The probability of the treatment changes from 0 to 1 (either not treated or treated) as <span class="math inline">\(X_i\)</span> moves across some threshold <span class="math inline">\(c\)</span>. Then RD estimate the local average treatment effect by comparing the mean of the outcome that is right above and right below that threshold <span class="math inline">\(c\)</span>. In fuzzy RD, the probability of the treatment that falls within 0 and 1 changes as <span class="math inline">\(X_i\)</span> crosses the cutoff. This implies that the effect of <span class="math inline">\(X_i\)</span> crossing the cutoff has influence on the outcome as well as the probability of treatment. Therefore the treatment effect is defined by the ratio of these two effects. Fuzzy RD is similar to IV in a sense that it estimates a change in probability of treatment for variable <span class="math inline">\(X_i-c\)</span> and use the fitted probability of treatment to estimate the change in outcome. If we extrapolate <span class="math inline">\(E(Y_{0i}|X_i)\)</span> and <span class="math inline">\(E(Y_{1i}|X_i)\)</span> not only upon the threshold <span class="math inline">\(c\)</span> but for the entire <span class="math inline">\(X\)</span> and compute the difference in average differences in mean below and above the threshold, regression discontinuity is similar to the difference-in-difference estimator. The fuzzy RD estimates the local average treatment effect of the compliers.</p></li>
+<li><p>The intuition behind it: Regression discontinuity is used when we have ``good knowledge about the rules (<span class="math inline">\(X_i\)</span>) determining the treatment(<span class="math inline">\(T_i = \mathbb{I}\{X_i \geq c\}\)</span>)&quot;. In other words, the assignment to treatment is not-random in regression-discontinuity setting. However, researchers have some knowledge that the assignment to treatment is governed at least partly by some threshold value (<span class="math inline">\(c\)</span>) of an observed covariate <span class="math inline">\(X_i\)</span> and that passing this threshold induces a change in potential outcome <span class="math inline">\(Y_i\)</span>. RD then regards the discontinuity of the mean outcome along the covariate at the cutoff value as causal effect of treatment. Regression discontinuity comes in sharp and fuzzy. In sharp RD, we look at the discontinuity in conditional expectation of the outcome given the covariate to calculate an average causal effect of the treatment. The probability of the treatment changes from 0 to 1 (either not treated or treated) as <span class="math inline">\(X_i\)</span> moves across some threshold <span class="math inline">\(c\)</span>. Then RD estimate the local average treatment effect by comparing the mean of the outcome that is right above and right below that threshold <span class="math inline">\(c\)</span>. In fuzzy RD, the probability of the treatment that is strictly less than 1 changes as <span class="math inline">\(X_i\)</span> crosses the cutoff. This implies that the effect of <span class="math inline">\(X_i\)</span> crossing the cutoff has influence on the outcome as well as the probability of treatment. Therefore the treatment effect is defined by the ratio of these two effects. Fuzzy RD is similar to IV in a sense that it estimates a change in probability of treatment for variable <span class="math inline">\(X_i-c\)</span> and use the fitted probability of treatment to estimate the change in outcome. If we extrapolate <span class="math inline">\(E(Y_{0i}|X_i)\)</span> and <span class="math inline">\(E(Y_{1i}|X_i)\)</span> not only upon the threshold <span class="math inline">\(c\)</span> but for the entire <span class="math inline">\(X_i\)</span> horizon, and compare the pre- and post-treatment differences in outcome means for those below the threshold to those above it, regression discontinuity is similar to the difference-in-difference estimator. The fuzzy RD estimates the local average treatment effect of the compliers.</p></li>
 <li><p>The identification assumption(s):</p></li>
 </ul>
 <ol style="list-style-type: lower-alpha">
@@ -831,13 +734,12 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 <li>Conditional independence assumption: Conditional on the covariates, there is no variation in the treatment.</li>
 <li>We observe a discontinuous change in the probability of treatment at some cut-off point.</li>
 <li><span class="math inline">\(E(Y_{1i}|X_i=x)\)</span> and <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> are continuous in <span class="math inline">\(x\)</span>. This assumption is necessary to extrapolate <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> around the neighborhood of the discontinuity to use it for counterfactual of the average outcome of treated individuals around that threshold.</li>
-<li>Monotonicity assumption: Suppose <span class="math inline">\(T_i(X=x^\star)\)</span> denotes the potential treatment of <span class="math inline">\(i\)</span> with threshold <span class="math inline">\(x^{\star}\)</span>. In fuzzy RD, <span class="math inline">\(T_i(X)\)</span> is non-increasing in <span class="math inline">\(x^\star\)</span> at <span class="math inline">\(x^\star = c\)</span>. If we increase <span class="math inline">\(x^\star\)</span> marginally at the cutoff <span class="math inline">\(c\)</span>, no one joins treatment, i.e. there is no defiers.</li>
+<li>Monotonicity assumption: Suppose <span class="math inline">\(T_i(X=x^\star)\)</span> denotes the potential treatment of <span class="math inline">\(i\)</span> with threshold <span class="math inline">\(x^{\star}\)</span>. In fuzzy RD, <span class="math inline">\(T_i(X)\)</span> is non-increasing in <span class="math inline">\(x^\star\)</span> at <span class="math inline">\(x^\star = c\)</span>. That is, if we increase <span class="math inline">\(x^\star\)</span> marginally at the cutoff <span class="math inline">\(c\)</span>, no one joins treatment, i.e. there is no defiers.</li>
 </ol>
 <ul>
-<li><p>An example: To the extension of the previous example, suppose that we are interested in looking at the holding a Ph.D. degree on wage. For the sake of simplicity, suppose that students with GRE test score above 160 get the degree and those below the score don’t. The basic idea is that RD splits individuals into two groups below and above the score of 160 and get the difference in the outcome to estimate the average treatment effect. Thus the underlying assumption is that the ability and covariates of these two groups is similar enough that the wage comparison for those on either side of the GRE score of 160 gives us high internal validity. However, recall that the estimator is only so useful to estimate “local treatment effect” around the cutoff, otherwise the control group’s outcome wouldn’t be a good counterfactual to the treatment group. Notice that the focus for RD is not to compare the difference of the conditional expectation of the outcome that are very much away from the cut-off.</p></li>
+<li><p>An example: To the extension of the previous example, suppose that we are interested in looking at the effect of Ph.D. degree on wage. For the sake of simplicity, suppose that students with GRE test score above 160 get the degree and those below the score don’t. The basic idea is that RD splits individuals into two groups below and above the score of 160 and get the difference in the outcome to estimate the average treatment effect. Thus the underlying assumption is that the ability and covariates of these two groups is similar enough that the wage comparison for those on either side of the GRE score of 160 gives us high internal validity. However, recall that the estimator is only so useful to estimate “local treatment effect” around the cutoff, otherwise the control group’s outcome wouldn’t be a good counterfactual to the treatment group. For example, comparing wages of individuals with GRE score very much far away from the cutoff, say those with score of 130 with those with 170, does not tell anything about whether that person holds a Ph.D. degree and thus would be a bad inference.</p></li>
 <li><p>Anything particular about standard errors: Bandwidth choice could affect the estimates and standard errors.</p></li>
 </ul>
-</div>
 </div>
 <div id="ideas" class="section level2">
 <h2>Ideas</h2>
@@ -890,16 +792,16 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
   \text{Y}_{i} = 1 + e^{0.5 \text{X}_{i}} + \varepsilon_i
 \end{align}
 \]</span> where <span class="math inline">\(\text{X}_{i}\sim\mathop{\text{Uniform}}(0, 10)\)</span> and <span class="math inline">\(\varepsilon_i\sim\mathop{N}(0,15)\)</span>.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a><span class="kw">library</span>(pacman)</span>
-<span id="cb14-2"><a href="#cb14-2"></a><span class="kw">p_load</span>(dplyr)</span>
-<span id="cb14-3"><a href="#cb14-3"></a><span class="co"># Choose a size</span></span>
-<span id="cb14-4"><a href="#cb14-4"></a>n &lt;-<span class="st"> </span><span class="dv">1000</span></span>
-<span id="cb14-5"><a href="#cb14-5"></a><span class="co"># Generate data</span></span>
-<span id="cb14-6"><a href="#cb14-6"></a>dgp_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
-<span id="cb14-7"><a href="#cb14-7"></a>  ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
-<span id="cb14-8"><a href="#cb14-8"></a>  <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
-<span id="cb14-9"><a href="#cb14-9"></a>  <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
-<span id="cb14-10"><a href="#cb14-10"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a><span class="kw">library</span>(pacman)</span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="kw">p_load</span>(dplyr)</span>
+<span id="cb13-3"><a href="#cb13-3"></a><span class="co"># Choose a size</span></span>
+<span id="cb13-4"><a href="#cb13-4"></a>n &lt;-<span class="st"> </span><span class="dv">1000</span></span>
+<span id="cb13-5"><a href="#cb13-5"></a><span class="co"># Generate data</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>dgp_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
+<span id="cb13-7"><a href="#cb13-7"></a>  ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
+<span id="cb13-8"><a href="#cb13-8"></a>  <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
+<span id="cb13-9"><a href="#cb13-9"></a>  <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
+<span id="cb13-10"><a href="#cb13-10"></a>)</span></code></pre></div>
 <pre><code>#&gt; # A tibble: 6 x 3
 #&gt;        e     x     y
 #&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
@@ -914,14 +816,14 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 <hr />
 <p><strong>Iterating</strong></p>
 <p>To make iterating easier, let’s wrap our DGP in a function.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>fun_iter &lt;-<span class="st"> </span><span class="cf">function</span>(iter, <span class="dt">n =</span> <span class="dv">30</span>) {</span>
-<span id="cb16-2"><a href="#cb16-2"></a>  <span class="co"># Generate data</span></span>
-<span id="cb16-3"><a href="#cb16-3"></a>  iter_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
-<span id="cb16-4"><a href="#cb16-4"></a>    ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
-<span id="cb16-5"><a href="#cb16-5"></a>    <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
-<span id="cb16-6"><a href="#cb16-6"></a>    <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
-<span id="cb16-7"><a href="#cb16-7"></a>  )</span>
-<span id="cb16-8"><a href="#cb16-8"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>fun_iter &lt;-<span class="st"> </span><span class="cf">function</span>(iter, <span class="dt">n =</span> <span class="dv">30</span>) {</span>
+<span id="cb15-2"><a href="#cb15-2"></a>  <span class="co"># Generate data</span></span>
+<span id="cb15-3"><a href="#cb15-3"></a>  iter_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
+<span id="cb15-4"><a href="#cb15-4"></a>    ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
+<span id="cb15-5"><a href="#cb15-5"></a>    <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
+<span id="cb15-6"><a href="#cb15-6"></a>    <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
+<span id="cb15-7"><a href="#cb15-7"></a>  )</span>
+<span id="cb15-8"><a href="#cb15-8"></a>}</span></code></pre></div>
 <p>We still need to run a regression and draw inference</p>
 <hr />
 </div>
@@ -933,31 +835,31 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 <li><code>se_type = &quot;HC2&quot;</code> provides heteroskedasticity-robust SEs</li>
 <li><code>lm()</code> works for “spherical” standard errors but cannot calculate het-robust standard errors</li>
 </ul>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> dgp_df, <span class="dt">se_type =</span> <span class="st">&quot;classical&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">tidy</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> dgp_df, <span class="dt">se_type =</span> <span class="st">&quot;classical&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">tidy</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)</span></code></pre></div>
 <pre><code>#&gt;          term  estimate std.error statistic       p.value
 #&gt; 1 (Intercept) -21.14183  1.473496 -14.34807  1.383951e-42
 #&gt; 2           x  10.48074  0.257810  40.65294 6.560626e-214</code></pre>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1"></a><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> dgp_df, <span class="dt">se_type =</span> <span class="st">&quot;HC2&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">tidy</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> dgp_df, <span class="dt">se_type =</span> <span class="st">&quot;HC2&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">tidy</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)</span></code></pre></div>
 <pre><code>#&gt;          term  estimate std.error statistic       p.value
 #&gt; 1 (Intercept) -21.14183 1.4335274 -14.74812  1.112039e-44
 #&gt; 2           x  10.48074 0.3097606  33.83495 8.788638e-168</code></pre>
 <hr />
 <p>Now add these estimators to our iteration function…</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a>fun_iter &lt;-<span class="st"> </span><span class="cf">function</span>(iter, <span class="dt">n =</span> <span class="dv">30</span>) {</span>
-<span id="cb21-2"><a href="#cb21-2"></a>  <span class="co"># Generate data</span></span>
-<span id="cb21-3"><a href="#cb21-3"></a>  iter_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
-<span id="cb21-4"><a href="#cb21-4"></a>    ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
-<span id="cb21-5"><a href="#cb21-5"></a>    <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
-<span id="cb21-6"><a href="#cb21-6"></a>    <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
-<span id="cb21-7"><a href="#cb21-7"></a>  )</span>
-<span id="cb21-8"><a href="#cb21-8"></a>  <span class="co"># Estimate models</span></span>
-<span id="cb21-9"><a href="#cb21-9"></a>  lm1 &lt;-<span class="st"> </span><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> iter_df, <span class="dt">se_type =</span> <span class="st">&quot;classical&quot;</span>)</span>
-<span id="cb21-10"><a href="#cb21-10"></a>  lm2 &lt;-<span class="st"> </span><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> iter_df, <span class="dt">se_type =</span> <span class="st">&quot;HC2&quot;</span>)</span>
-<span id="cb21-11"><a href="#cb21-11"></a>  <span class="co"># Stack and return results</span></span>
-<span id="cb21-12"><a href="#cb21-12"></a>  <span class="kw">bind_rows</span>(<span class="kw">tidy</span>(lm1), <span class="kw">tidy</span>(lm2)) <span class="op">%&gt;%</span></span>
-<span id="cb21-13"><a href="#cb21-13"></a><span class="st">    </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(term <span class="op">==</span><span class="st"> &quot;x&quot;</span>) <span class="op">%&gt;%</span></span>
-<span id="cb21-14"><a href="#cb21-14"></a><span class="st">    </span><span class="kw">mutate</span>(<span class="dt">se_type =</span> <span class="kw">c</span>(<span class="st">&quot;classical&quot;</span>, <span class="st">&quot;HC2&quot;</span>), <span class="dt">i =</span> iter)</span>
-<span id="cb21-15"><a href="#cb21-15"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a>fun_iter &lt;-<span class="st"> </span><span class="cf">function</span>(iter, <span class="dt">n =</span> <span class="dv">30</span>) {</span>
+<span id="cb20-2"><a href="#cb20-2"></a>  <span class="co"># Generate data</span></span>
+<span id="cb20-3"><a href="#cb20-3"></a>  iter_df &lt;-<span class="st"> </span><span class="kw">tibble</span>(</span>
+<span id="cb20-4"><a href="#cb20-4"></a>    ε =<span class="st"> </span><span class="kw">rnorm</span>(n, <span class="dt">sd =</span> <span class="dv">15</span>),</span>
+<span id="cb20-5"><a href="#cb20-5"></a>    <span class="dt">x =</span> <span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>),</span>
+<span id="cb20-6"><a href="#cb20-6"></a>    <span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(<span class="fl">0.5</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span>ε</span>
+<span id="cb20-7"><a href="#cb20-7"></a>  )</span>
+<span id="cb20-8"><a href="#cb20-8"></a>  <span class="co"># Estimate models</span></span>
+<span id="cb20-9"><a href="#cb20-9"></a>  lm1 &lt;-<span class="st"> </span><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> iter_df, <span class="dt">se_type =</span> <span class="st">&quot;classical&quot;</span>)</span>
+<span id="cb20-10"><a href="#cb20-10"></a>  lm2 &lt;-<span class="st"> </span><span class="kw">lm_robust</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> iter_df, <span class="dt">se_type =</span> <span class="st">&quot;HC2&quot;</span>)</span>
+<span id="cb20-11"><a href="#cb20-11"></a>  <span class="co"># Stack and return results</span></span>
+<span id="cb20-12"><a href="#cb20-12"></a>  <span class="kw">bind_rows</span>(<span class="kw">tidy</span>(lm1), <span class="kw">tidy</span>(lm2)) <span class="op">%&gt;%</span></span>
+<span id="cb20-13"><a href="#cb20-13"></a><span class="st">    </span><span class="kw">select</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(term <span class="op">==</span><span class="st"> &quot;x&quot;</span>) <span class="op">%&gt;%</span></span>
+<span id="cb20-14"><a href="#cb20-14"></a><span class="st">    </span><span class="kw">mutate</span>(<span class="dt">se_type =</span> <span class="kw">c</span>(<span class="st">&quot;classical&quot;</span>, <span class="st">&quot;HC2&quot;</span>), <span class="dt">i =</span> iter)</span>
+<span id="cb20-15"><a href="#cb20-15"></a>}</span></code></pre></div>
 <p>With that function in hand, let’s run it 1,000 times.</p>
 <p>There are a lot of ways to run a single function over a list/vector of values.</p>
 <ul>
@@ -967,29 +869,29 @@ E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
 </ul>
 <p>Let’s go with <code>map()</code> from the <code>purrr</code> package because it easily parallelizes across platforms using the <code>furrr</code> package.</p>
 <p><strong>Alternative 1: 1,000 iterations</strong></p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="co"># Packages</span></span>
-<span id="cb22-2"><a href="#cb22-2"></a><span class="kw">p_load</span>(purrr)</span>
-<span id="cb22-3"><a href="#cb22-3"></a><span class="co"># Set seed</span></span>
-<span id="cb22-4"><a href="#cb22-4"></a><span class="kw">set.seed</span>(<span class="dv">12345</span>)</span>
-<span id="cb22-5"><a href="#cb22-5"></a><span class="co"># Run 1,000 iterations</span></span>
-<span id="cb22-6"><a href="#cb22-6"></a>sim_list &lt;-<span class="st"> </span><span class="kw">map</span>(<span class="dv">1</span><span class="op">:</span><span class="fl">1e3</span>, fun_iter)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="co"># Packages</span></span>
+<span id="cb21-2"><a href="#cb21-2"></a><span class="kw">p_load</span>(purrr)</span>
+<span id="cb21-3"><a href="#cb21-3"></a><span class="co"># Set seed</span></span>
+<span id="cb21-4"><a href="#cb21-4"></a><span class="kw">set.seed</span>(<span class="dv">12345</span>)</span>
+<span id="cb21-5"><a href="#cb21-5"></a><span class="co"># Run 1,000 iterations</span></span>
+<span id="cb21-6"><a href="#cb21-6"></a>sim_list &lt;-<span class="st"> </span><span class="kw">map</span>(<span class="dv">1</span><span class="op">:</span><span class="fl">1e3</span>, fun_iter)</span></code></pre></div>
 <p><strong>Alternative 2: Parallelized 1,000 iterations</strong></p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a><span class="co"># Packages</span></span>
-<span id="cb23-2"><a href="#cb23-2"></a><span class="kw">p_load</span>(purrr, furrr)</span>
-<span id="cb23-3"><a href="#cb23-3"></a><span class="co"># Set options</span></span>
-<span id="cb23-4"><a href="#cb23-4"></a><span class="kw">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb23-5"><a href="#cb23-5"></a><span class="co"># Tell R to parallelize</span></span>
-<span id="cb23-6"><a href="#cb23-6"></a><span class="kw">plan</span>(multiprocess)</span>
-<span id="cb23-7"><a href="#cb23-7"></a><span class="co"># Run 10,000 iterations</span></span>
-<span id="cb23-8"><a href="#cb23-8"></a>sim_list &lt;-<span class="st"> </span><span class="kw">future_map</span>(</span>
-<span id="cb23-9"><a href="#cb23-9"></a>  <span class="dv">1</span><span class="op">:</span><span class="fl">1e3</span>, fun_iter,</span>
-<span id="cb23-10"><a href="#cb23-10"></a>  <span class="dt">.options =</span> <span class="kw">future_options</span>(<span class="dt">seed =</span> T)</span>
-<span id="cb23-11"><a href="#cb23-11"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="co"># Packages</span></span>
+<span id="cb22-2"><a href="#cb22-2"></a><span class="kw">p_load</span>(purrr, furrr)</span>
+<span id="cb22-3"><a href="#cb22-3"></a><span class="co"># Set options</span></span>
+<span id="cb22-4"><a href="#cb22-4"></a><span class="kw">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb22-5"><a href="#cb22-5"></a><span class="co"># Tell R to parallelize</span></span>
+<span id="cb22-6"><a href="#cb22-6"></a><span class="kw">plan</span>(multiprocess)</span>
+<span id="cb22-7"><a href="#cb22-7"></a><span class="co"># Run 10,000 iterations</span></span>
+<span id="cb22-8"><a href="#cb22-8"></a>sim_list &lt;-<span class="st"> </span><span class="kw">future_map</span>(</span>
+<span id="cb22-9"><a href="#cb22-9"></a>  <span class="dv">1</span><span class="op">:</span><span class="fl">1e3</span>, fun_iter,</span>
+<span id="cb22-10"><a href="#cb22-10"></a>  <span class="dt">.options =</span> <span class="kw">future_options</span>(<span class="dt">seed =</span> T)</span>
+<span id="cb22-11"><a href="#cb22-11"></a>)</span></code></pre></div>
 <p>The <code>furrr</code> package (<code>future</code> + <code>purrr</code>) makes parallelization easy</p>
 <p>Our <code>fun_iter()</code> function returns a <code>data.frame</code>, and <code>future_map()</code> returns a <code>list</code> (of the returned objects).</p>
 <p>So <code>sim_list</code> is going to be a <code>list</code> of <code>data.frame</code> objects. We can bind them into one <code>data.frame</code> with <code>bind_rows()</code>.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="co"># Bind list together</span></span>
-<span id="cb24-2"><a href="#cb24-2"></a>sim_df &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(sim_list)</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a><span class="co"># Bind list together</span></span>
+<span id="cb23-2"><a href="#cb23-2"></a>sim_df &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(sim_list)</span></code></pre></div>
 <hr />
 </div>
 <div id="and-the-results" class="section level3">
