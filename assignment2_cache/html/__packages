@@ -28,3 +28,5 @@ janitor
 kableExtra
 gridExtra
 estimatr
+future
+furrr
