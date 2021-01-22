@@ -476,6 +476,85 @@ summary {
 </blockquote>
 <div id="section" class="section level1 tabset tabset-fade tabset-pills">
 <h1></h1>
+<div id="a2---estimators" class="section level2">
+<h2>A2 - Estimators</h2>
+<blockquote>
+<p>Due date: 19 January 2020</p>
+</blockquote>
+<p><em>For each scenario below, first describe the intuition of the estimator—what is being compared, what problems it fixes, why it works. Second, the identification strategy, inclusive of the assumption required for the identification of a causal parameter. Third, provide an example of the estimator in use, inclusive of the specific assumptions that would be operational in that example. (Examples can be from existing literature, or from your own research programme.) Fourth, comment on any particularly relevant considerations to be made with respect to the estimation of standard errors in each environment. (There may not be.) Responses will be evaluated based on accuracy, completeness and clarity.</em></p>
+<hr />
+<p>A difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<ul>
+<li>The intuition behind it: Suppose random selection of subjects to treatment group and control group. The difference estimator compares the average outcome of the treated group with the average outcome of the control group to get the average causal treatment effect. It is the difference in average outcome between the two groups.</li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+\textrm{A difference estimator}
+&amp;= 
+E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
+&amp;= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&amp;= E(Y_{1i}-Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&amp;= \textrm{average treatment effect on the treated} + \textrm{selection bias (pre-treatment)}\\
+\end{aligned}
+\]</span></p>
+<ul>
+<li>The identification assumption(s):</li>
+</ul>
+<ol style="list-style-type: lower-alpha">
+<li>There is no selection bias in the absence of the treatment. Some individual characteristics do not govern the placement of the treatment, i.e., individuals are randomly selected to the treated or control group. This allows for the control group to be used as the counter-factual for the treated group (<span class="math inline">\(E(Y_{0i}|T_i=1)=E(Y_{0i}|T_i=0)\)</span>).</li>
+<li>It assumes that there are no other reasons except the treatment for the change in mean outcomes before and after the treatment. That is, the treatment stands for the impact of all factors that are different between the two groups.</li>
+<li>The average outcome of the treated group remains constant throughout earlier and later periods of the treatment. The average outcome of the control group remains constant before and after the treatment. We don’t consider the time component in difference estimator.</li>
+</ol>
+<ul>
+<li><p>An example: Provided that the control group and treatment group select into treatment randomly, difference estimator in RCT setting could provide average causal treatment effect.</p></li>
+<li><p>Anything particular about standard errors: We may want to adjust for standard error if we see the variation of the outcome in treatment group different from the variation of the outcome in control group. However, here we may have too few clusters (two clusters), which could be problematic.</p></li>
+</ul>
+<p><br> A matching-type estimator of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<ul>
+<li><p>The intuition behind it: Suppose the selection into treatment is non-random but is well approximated by observable covariates (<span class="math inline">\(X\)</span>) or by <span class="math inline">\(f(X)\)</span>. A matching-type estimator first pairs up the individuals from the treated and control group that have similar distributions on the covariates. Then for each matching pair, treatment effect is calculated by taking the difference in the outcome. Lastly, by taking the average of those differences, we can reasonably argue that a matching-type estimate of the treatment effect is the average causal treatment effect. A matching-type estimator helps to mitigate the fundamental problem of causal inference by using an individual with similar characteristics as a counterfactual for the treated individual.</p></li>
+<li><p>The identification assumption(s):</p></li>
+</ul>
+<ol style="list-style-type: lower-alpha">
+<li>Treated and control group share the same covariates and these covariates are observable.</li>
+<li>The selection into treatment is non-random and is well approximated by <span class="math inline">\(X\)</span> or <span class="math inline">\(f(X)\)</span>.</li>
+<li>Conditional independence assumption (CIA): Conditional on observed characteristics <span class="math inline">\(X\)</span>, the assignment of treatment is independent of the treatment-specific outcomes so that selection bias disappears. Recall CIA is satisfied if <span class="math inline">\(X\)</span> includes all variables that affect both selection into treatment and outcomes.</li>
+<li>Overlap assumption: Conditional on observed characteristics <span class="math inline">\(X\)</span>, the probability of being assigned to treated group is in between 0 and 1 (<span class="math inline">\(Pr(T=1|X=x&#39;) \in (0,1)\)</span>). This implies that the probability of observing individuals in control group at each level of <span class="math inline">\(X\)</span> is positive. Notice that if <span class="math inline">\(Pr(T=1|X=x&#39;)=1\)</span>, the there is no good matching individual in control group to be used as a counterfactual.</li>
+</ol>
+<ul>
+<li><p>An example: Nearest-neighbor matching, propensity score methods are some of the matching estimators.</p></li>
+<li><p>Anything particular about standard errors: If variation in outcome across matching groups are different, we may account for it by using clustered standard error.</p></li>
+</ul>
+<p><br> A difference-in-difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<ul>
+<li><p>The intuition behind it: Difference-in-difference estimator is the time dimension added version of difference estimator and is used to estimate the average treatment effect. By including time dimension, the estimator addresses serial correlation of the outcomes. A difference-in-difference estimator compares the differences in average outcome in the treated group and control group across time. Suppose that the treated and control group share the same time trend. The difference-in-difference estimator isolates such trend component from the outcomes of the treated individuals. It does so by subtracting the differences in post-treatment and pre-treatment means of the control group from the difference in the post-treatment and pre-treatment means of the treated group. Note that this process also removes unobservable characteristics that are fixed across time within each group that could have contributed to the difference in outcome of the two groups.</p></li>
+<li><p>The identification assumption(s): All the OLS model assumptions apply for DiD if we run a regression for DiD estimator. In addition, DiD assumes parallel trend assumption. This implies that both treatment and control group share the same trend over time and thus their difference in outcome is constant if treatment did not occur.</p></li>
+<li><p>An example: Card and Krueger (1994) article about change in minimum wage on employment in the fast food sector. Having the change in employment in Pennsylvania to serve as a base, it controls for any bias caused by variables common to New Jersey and Pennsylvania. A simple statistical formulation of the model is <span class="math inline">\(Y_{it} = \beta_0 + \beta_1 S_t + \beta_2 T_i + \beta_3 (S_t\times T_i) + \varepsilon_{it}\)</span>, where <span class="math inline">\(S_t\)</span> is time dummy ( <span class="math inline">\(S_t = 0\)</span> if <span class="math inline">\(t=1\)</span> and <span class="math inline">\(S_t=1\)</span> if <span class="math inline">\(t=2\)</span>), and <span class="math inline">\(T_i\)</span> is the treatment dummy. The difference-in-difference estimate would then be <span class="math inline">\(\beta_4\)</span> which represents <span class="math inline">\((E(Y_{i2}|T_i=1)- E(Y_{i1}|T_i=1))-(E(Y_{i2}|T_i=0)- E(Y_{i1}|T_i=0))\)</span>.</p></li>
+<li><p>Anything particular about standard errors: It is helpful to use robust standard errors to account for autocorrelation or correlation within identical group before and after the treatment.</p></li>
+</ul>
+<p><br> Instrumenting for an endogenous regressor, <span class="math inline">\(X_i\)</span>, with an instrument, <span class="math inline">\(Z_i\)</span>, in order to retrieve an estimate of the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<ul>
+<li><p>The intuition behind it: We control for the bad variation of <span class="math inline">\(X_i\)</span> by regressing it with respect to <span class="math inline">\(Z_i\)</span>. We use the fitted <span class="math inline">\(X_i\)</span> to estimate the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>. IV methods solve for bias from measurement error in regression models. Recall that a regression coefficients is biased toward zero if the regressors contain large noise or measurement error. IV also solves for omitted variable bias in a sense that it isolates irrelevant variation of the endogenous regressors.</p></li>
+<li><p>The identification assumption(s): The instruments should be relevant in that its variation must be related to the variation in the instrumented variable <span class="math inline">\(X_i\)</span>. The instruments have no effect on <span class="math inline">\(Y_i\)</span> except through <span class="math inline">\(X_i\)</span>. The instruments should be exogenous or predetermined in that they are uncorrelated with the disturbances.</p></li>
+<li><p>An example: Consider a case where we are interested in the returns on schooling. The outcome variable is wage and the variable of interest is education. Here, education is defined to be years of schooling. Suppose education is endogenous, i.e. it is correlated with the error term. OLS estimator no longer produces consistent estimate since exogeneity assumption is violated. Thus we introduce an instrument variable, arguably a valid one to isolate bad variation from education. In general, 2SLS is used for IV estimator so at the first stage, education is regressed on the instrument to get the fitted value of education. Then on the second stage, wage is regressed on the fitted value of education. As long as the bad variation in education is well controlled for at the first stage, 2SLS produces consistent estimate for the average treatment effect.</p></li>
+<li><p>Anything particular about standard errors: Standard error in IV is reported to be in general larger than OLS standard error although IV estimators generate a consistent estimate in contrast to OLS with endogenous regressors. If the instruments are weak, i.e. they have very low correlation with the regressors, the instrumental variable estimators or 2SLS estimators could lead to large or inconsistent standard errors.</p></li>
+</ul>
+<p><br> A regression-discontinuity approach to estimating the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
+<ul>
+<li><p>The intuition behind it: Suppose researchers have some knowledge that the non-random treatment is governed at least partly by some threshold value (<span class="math inline">\(c\)</span>) of an observed covariate <span class="math inline">\(X_i\)</span> and that passing this threshold induces a change in potential outcome <span class="math inline">\(Y_i\)</span>. RD then regards the discontinuity of the mean outcome along the covariate at the cutoff value as causal effect of treatment. Regression discontinuity comes in sharp and fuzzy. In sharp RD, we look at the discontinuity in conditional expectation of the outcome given the covariate to calculate an average causal effect of the treatment. The probability of the treatment changes from 0 to 1 (either not treated or treated) as <span class="math inline">\(X_i\)</span> moves across some threshold <span class="math inline">\(c\)</span>. Then RD estimate the local average treatment effect by comparing the mean of the outcome that is right above and right below that threshold <span class="math inline">\(c\)</span>. In fuzzy RD, the probability of the treatment that is strictly less than 1 changes as <span class="math inline">\(X_i\)</span> crosses the cutoff. This implies that the effect of <span class="math inline">\(X_i\)</span> crossing the cutoff has influence on the outcome as well as the probability of treatment. Therefore the treatment effect is defined by the ratio of these two effects. Fuzzy RD is similar to IV in a sense that it estimates a change in probability of treatment for variable <span class="math inline">\(X_i-c\)</span> and use the fitted probability of treatment to estimate the change in outcome. If we extrapolate <span class="math inline">\(E(Y_{0i}|X_i)\)</span> and <span class="math inline">\(E(Y_{1i}|X_i)\)</span> not only upon the threshold <span class="math inline">\(c\)</span> but for the entire <span class="math inline">\(X_i\)</span> horizon, and compare the pre- and post-treatment differences in outcome means for those below the threshold to those above it, regression discontinuity is similar to the difference-in-difference estimator. The fuzzy RD estimates the local average treatment effect of the compliers.</p></li>
+<li><p>The identification assumption(s):</p></li>
+</ul>
+<ol style="list-style-type: lower-alpha">
+<li>Researchers know the assignment mechanism is some function of observable variable <span class="math inline">\(X\)</span>.</li>
+<li>Conditional independence assumption: Conditional on the covariates, there is no variation in the treatment.</li>
+<li>We observe a discontinuous change in the probability of treatment at some cut-off point.</li>
+<li><span class="math inline">\(E(Y_{1i}|X_i=x)\)</span> and <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> are continuous in <span class="math inline">\(x\)</span>. This assumption is necessary to extrapolate <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> around the neighborhood of the discontinuity to use it for counterfactual of the average outcome of treated individuals around that threshold.</li>
+<li>Monotonicity assumption: Suppose <span class="math inline">\(T_i(X=x^\star)\)</span> denotes the potential treatment of <span class="math inline">\(i\)</span> with threshold <span class="math inline">\(x^{\star}\)</span>. In fuzzy RD, <span class="math inline">\(T_i(X)\)</span> is non-increasing in <span class="math inline">\(x^\star\)</span> at <span class="math inline">\(x^\star = c\)</span>. That is, increasing <span class="math inline">\(x^\star\)</span> marginally from <span class="math inline">\(c\)</span> to <span class="math inline">\(c+\varepsilon\)</span> doesn’t make someone more likely to be treated, i.e. there is no defiers.</li>
+</ol>
+<ul>
+<li><p>An example: Suppose that we are interested in looking at the effect of Ph.D. degree on wage. For the sake of simplicity, suppose that students with GRE test score above 160 get the degree and those below the score don’t. The basic idea is that RD splits individuals into two groups below and above the score of 160 and get the difference in the outcome to estimate the average treatment effect. Thus the underlying assumption is that the ability and covariates of these two groups are similar enough that the wage comparison for those on either side of the GRE score of 160 gives us high internal validity. However, recall that the estimator is only so useful to estimate “local treatment effect” around the cutoff, otherwise the control group’s outcome wouldn’t be a good counterfactual to the treatment group. For example, comparing wages of individuals with GRE score very much far away from the cutoff, say those with score of 130 with those with 170, does not tell anything about whether that person holds a Ph.D. degree.</p></li>
+<li><p>Anything particular about standard errors: Bandwidth selection could affect the estimates and standard errors.</p></li>
+</ul>
+</div>
 <div id="a1---ovb-simulation" class="section level2">
 <h2>A1 - OVB simulation</h2>
 <blockquote>
@@ -657,89 +736,13 @@ summary {
 </ul>
 </div>
 </div>
-<div id="a2---estimators" class="section level2">
-<h2>A2 - Estimators</h2>
+<div id="a3---the-visualization-of-treatment-variation" class="section level2">
+<h2>A3 - The visualization of treatment variation</h2>
 <blockquote>
-<p>Due date: 19 January 2020</p>
+<p>Due date: 26 January 2021</p>
 </blockquote>
-<p><em>For each scenario below, first describe the intuition of the estimator—what is being compared, what problems it fixes, why it works. Second, the identification strategy, inclusive of the assumption required for the identification of a causal parameter. Third, provide an example of the estimator in use, inclusive of the specific assumptions that would be operational in that example. (Examples can be from existing literature, or from your own research programme.) Fourth, comment on any particularly relevant considerations to be made with respect to the estimation of standard errors in each environment. (There may not be.) Responses will be evaluated based on accuracy, completeness and clarity.</em></p>
-<hr />
-<p>A difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
-<ul>
-<li>The intuition behind it: Suppose we have treated and control group. The difference estimate is just the difference of the two group’s average. The difference estimator compares the average outcome of the treatment group with the average outcome of the control group to get the treatment effect. Therefore, it is the difference in average outcome between the two groups.</li>
-</ul>
-<p><span class="math display">\[
-\begin{aligned}
-\textrm{A difference estimator}
-&amp;= 
-E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
-&amp;= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
-&amp;= E(Y_{1i}-Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
-&amp;= \textrm{average treatment effect on the treated} + \textrm{selection bias (pre-treatment)}\\
-&amp;= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) + E(Y_{1i}|T_i=0) - E(Y_{0i}|T_i=0)\\
-&amp;= E(Y_{1i}|T_i=1) - E(Y_{1i}|T_i=0) + E(Y_{1i}-Y_{0i}|T_i=0)\\
-&amp;= \textrm{selection bias (post-treatment)}+\textrm{average treatment effect on the control}
-\end{aligned}
-\]</span></p>
-<ul>
-<li>The identification assumption(s):</li>
-</ul>
-<ol style="list-style-type: lower-alpha">
-<li>Treatment is independent of potential outcome and thus there is no selection bias prior the treatment. This means that the treatment is randomly assigned so that the group’s status prior the treatment has no influence over the assignment of the treatment.</li>
-<li>The control group could sufficiently represent the counter-factual for the treated group (<span class="math inline">\(E(Y_{0i}|T_i=1)=E(Y_{0i}|T_i=0)\)</span>). This implies that the expected outcomes of the control group before treatment sufficiently represents the expected outcomes of the treated group. Assigning the treatment randomly allows for control and treated group to be comparable.</li>
-<li>Regard average treatment effect as the average treatment effect on the treated.</li>
-<li>All individuals within the treated group are treated. All individuals within the control are not treated. In other words, all individuals within the assigned groups complied to the treatment status.</li>
-<li>It assumes that there are not other reasons for the change in mean outcomes before and after the treatment. That is, the treatment dummy variable stands for the impact of all factors that are different earlier and later periods.</li>
-</ol>
-<ul>
-<li><p>An example: Suppose that we are interested in estimating the wage increase in having a Ph.D. degree in Economics. Then the treatment would be holding a Ph.D. degree, and <span class="math inline">\(Y_i\)</span> being the wage of an individual. Suppose we have 100 observations from which 40 of them are holding the degree (i.e. assigned in treated group) and the rest are not (i.e. assigned in control group). Then difference estimator simply takes the average wage for each group and calculate the difference of the two averages. Recall that our interest is to estimate the wage difference in the treated group have they not held a degree.</p></li>
-<li><p>Anything particular about standard errors: Depending on the selection of the sample, the standard error of the point estimate of the treatment effect could be large.</p></li>
-</ul>
-<p><br> A matching-type estimator of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
-<ul>
-<li><p>The intuition behind it: The treatment effect can be calculated by averaging the the differences in outcomes of each comparable individuals in the treatment and control group. A matching-type estimator first pairs up the individuals from the treated and control group based on given covariates. Then for each matching pair, treatment effect is calculated by taking the difference in the outcome. Lastly, by taking the average of those differences, we have a matching-type estimate of the treatment effect. A matching-type estimator helps to mitigate the fundamental problem of causal inference by using an individual with similar characteristics as a counterfactual of the treated individual.</p></li>
-<li><p>The identification assumption(s):</p></li>
-</ul>
-<ol style="list-style-type: lower-alpha">
-<li>Treated and control group share the same covariates and these covariates are observable.<br />
-</li>
-<li>Conditional independence assumption (CIA): Conditional on observed characteristics <span class="math inline">\(X\)</span>, the assignment of treatment is independent of the treatment-specific outcomes so that selection bias disappears. Recall CIA is satisfied if <span class="math inline">\(X\)</span> includes all variables that affect both participation and outcomes.</li>
-<li>Overlap assumption: Conditional on observed characteristics <span class="math inline">\(X\)</span>, the probability of being assigned to treated group is in between 0 and 1 (<span class="math inline">\(Pr(T=1|X=x&#39;) \in (0,1)\)</span>). This implies a positive probability of observing nonparticipants(individuals in control group) at each level of <span class="math inline">\(X\)</span>. Notice that if <span class="math inline">\(Pr(T=1|X=x&#39;)=1\)</span>, the there is no good nonparticipants to use as counterfactuals.</li>
-</ol>
-<ul>
-<li><p>An example: To the extension of the previous example, suppose we have ability and family background as covariates in addition to the treatment status that affect the wage. Then a matching-type estimator would pair the participants in the treated group to the closest non-participants in the control group that have similar ability and family background, estimate the differences in wages of those matched pairs and take the average of them.</p></li>
-<li><p>Anything particular about standard errors: The standard error of the point estimate of treatment effect from matching-type estimator could be large. This is true depending on which of the non-participants in control group is selected as counterfactual of a treated individual. This could occur if there are multiple non-participants in control group for given set of values of <span class="math inline">\(X\)</span>. This could also happen depending on which covariates are selected for matching pairs.</p></li>
-</ul>
-<p><br> A difference-in-difference estimate of the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>. (here)</p>
-<ul>
-<li><p>The intuition behind it: Difference-in-difference estimator is the time dimension added version of difference estimator and is used to estimate the average treatment effect. By including time dimension, the estimator addresses serial correlation of the outcomes. A difference-in-difference estimator compares the differences in average outcome in the treated group and control group across time. Suppose that the treated and control group share the same time trend. The difference-in-difference estimator isolates such trend component from the outcomes of the treated individuals. It does so by subtracting the differences in post-treatment and pre-treatment means of the control group from the difference in the post-treatment and pre-treatment means of the treated group.</p></li>
-<li><p>The identification assumption(s): All the OLS model assumptions apply for DiD if we run a regression for DiD estimator. In addition, DiD assumes parallel trend assumption. This implies that both treatment and control group share the same time trend in the absence of the intervention of treatment. The allocation of the treatment is unrelated to outcome at baseline. Composition of comparison group remains constant across time. There is no spill-over effect and variation in treatment.</p></li>
-<li><p>An example: To the extension of the previous example, suppose for each individual that holds Ph.D. degree, we observe her past wage level without the degree (i.e. wage at t = 1) and also her present wage level with the degree (i.e. wage at t = 2). Also suppose that for each individual that are not planning on getting a Ph.D. degree, we observe the wage level of her during the same time horizon (t = 1, 2). Then a simple statistical formulation of the model is <span class="math inline">\(Y_{it} = \beta_0 + \beta_1 S_t + \beta_2 T_i + \beta_3 (S_t\times T_i) + \varepsilon_{it}\)</span>, where <span class="math inline">\(S_t\)</span> is time dummy ( <span class="math inline">\(S_t = 0\)</span> if <span class="math inline">\(t=1\)</span> and <span class="math inline">\(S_t=1\)</span> if <span class="math inline">\(t=2\)</span>), and <span class="math inline">\(T_i\)</span> is the treatment dummy. The difference-in-difference estimate would then be <span class="math inline">\(\beta_4\)</span> which represents <span class="math inline">\((E(Y_{i2}|T_i=1)- E(Y_{i1}|T_i=1))-(E(Y_{i2}|T_i=0)- E(Y_{i1}|T_i=0))\)</span>.</p></li>
-<li><p>Anything particular about standard errors: It is helpful to use robust standard errors to account for autocorrelation or correlation within identical individual or group before and after the treatment.</p></li>
-</ul>
-<p><br> Instrumenting for an endogenous regressor, <span class="math inline">\(X_i\)</span>, with an instrument, <span class="math inline">\(Z_i\)</span>, in order to retrieve an estimate of the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
-<ul>
-<li><p>The intuition behind it: We control for the bad variation of <span class="math inline">\(X_i\)</span> by regressing it with respect to <span class="math inline">\(Z_i\)</span>. We use the fitted <span class="math inline">\(X_i\)</span> to estimate the causal effect of <span class="math inline">\(X_i\)</span> on <span class="math inline">\(Y_i\)</span>. IV methods solve for bias from measurement error in regression models. Recall that a regression coefficients is biased toward zero if the regressors contain large noise or measurement error. IV also solves for omitted variable bias in a sense that it isolates irrelevant variation of the endogenous regressors.</p></li>
-<li><p>The identification assumption(s): The instruments should be relevant in that its variation must be related to the variation in the instrumented variable <span class="math inline">\(X_i\)</span>. The instruments have no effect on <span class="math inline">\(Y_i\)</span> except through <span class="math inline">\(X_i\)</span>. The instruments should be exogenous or predetermined in that they are uncorrelated with the disturbances.</p></li>
-<li><p>An example: Consider a case where we are interested in the returns to schooling. The outcome variable is wage and the variable of interest is education. Here, education is defined to be years of schooling. Suppose education is endogenous, i.e. it is correlated with the error term. OLS estimator no longer produces consistent estimate since exogeneity assumption is violated. Thus we introduce a instrument variable, arguably a variable related to family background or ability, to control for education variable which is endogenous. In general, 2SLS is used for IV estimator so at the first stage, education is regressed on the instrument, father’s education (that represents family background) and get the fitted value of education. Then on the second stage, wage is regressed on the fitted value of education. IV estimator produces consistent estimate.</p></li>
-<li><p>Anything particular about standard errors: Standard error in IV is reported to be in general larger than OLS standard error although IV estimators generate a consistent estimate in contrast to OLS with endogenous regressors. If the instruments are weak, i.e. they have very low correlation with the regressors, the instrumental variable estimators or 2SLS estimators could lead to large or inconsistent standard errors.</p></li>
-</ul>
-<p><br> A regression-discontinuity approach to estimating the effect of <span class="math inline">\(\mathbb{1}(T_i=1)\)</span> on <span class="math inline">\(Y_i\)</span>.</p>
-<ul>
-<li><p>The intuition behind it: Regression discontinuity is used when we have ``good knowledge about the rules (<span class="math inline">\(X_i\)</span>) determining the treatment(<span class="math inline">\(T_i = \mathbb{I}\{X_i \geq c\}\)</span>)&quot;. In other words, the assignment to treatment is not-random in regression-discontinuity setting. However, researchers have some knowledge that the assignment to treatment is governed at least partly by some threshold value (<span class="math inline">\(c\)</span>) of an observed covariate <span class="math inline">\(X_i\)</span> and that passing this threshold induces a change in potential outcome <span class="math inline">\(Y_i\)</span>. RD then regards the discontinuity of the mean outcome along the covariate at the cutoff value as causal effect of treatment. Regression discontinuity comes in sharp and fuzzy. In sharp RD, we look at the discontinuity in conditional expectation of the outcome given the covariate to calculate an average causal effect of the treatment. The probability of the treatment changes from 0 to 1 (either not treated or treated) as <span class="math inline">\(X_i\)</span> moves across some threshold <span class="math inline">\(c\)</span>. Then RD estimate the local average treatment effect by comparing the mean of the outcome that is right above and right below that threshold <span class="math inline">\(c\)</span>. In fuzzy RD, the probability of the treatment that is strictly less than 1 changes as <span class="math inline">\(X_i\)</span> crosses the cutoff. This implies that the effect of <span class="math inline">\(X_i\)</span> crossing the cutoff has influence on the outcome as well as the probability of treatment. Therefore the treatment effect is defined by the ratio of these two effects. Fuzzy RD is similar to IV in a sense that it estimates a change in probability of treatment for variable <span class="math inline">\(X_i-c\)</span> and use the fitted probability of treatment to estimate the change in outcome. If we extrapolate <span class="math inline">\(E(Y_{0i}|X_i)\)</span> and <span class="math inline">\(E(Y_{1i}|X_i)\)</span> not only upon the threshold <span class="math inline">\(c\)</span> but for the entire <span class="math inline">\(X_i\)</span> horizon, and compare the pre- and post-treatment differences in outcome means for those below the threshold to those above it, regression discontinuity is similar to the difference-in-difference estimator. The fuzzy RD estimates the local average treatment effect of the compliers.</p></li>
-<li><p>The identification assumption(s):</p></li>
-</ul>
-<ol style="list-style-type: lower-alpha">
-<li>Researchers know the assignment mechanism is some function of observable variable <span class="math inline">\(X_i\)</span>.</li>
-<li>Conditional independence assumption: Conditional on the covariates, there is no variation in the treatment.</li>
-<li>We observe a discontinuous change in the probability of treatment at some cut-off point.</li>
-<li><span class="math inline">\(E(Y_{1i}|X_i=x)\)</span> and <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> are continuous in <span class="math inline">\(x\)</span>. This assumption is necessary to extrapolate <span class="math inline">\(E(Y_{0i}|X_i=x)\)</span> around the neighborhood of the discontinuity to use it for counterfactual of the average outcome of treated individuals around that threshold.</li>
-<li>Monotonicity assumption: Suppose <span class="math inline">\(T_i(X=x^\star)\)</span> denotes the potential treatment of <span class="math inline">\(i\)</span> with threshold <span class="math inline">\(x^{\star}\)</span>. In fuzzy RD, <span class="math inline">\(T_i(X)\)</span> is non-increasing in <span class="math inline">\(x^\star\)</span> at <span class="math inline">\(x^\star = c\)</span>. That is, if we increase <span class="math inline">\(x^\star\)</span> marginally at the cutoff <span class="math inline">\(c\)</span>, no one joins treatment, i.e. there is no defiers.</li>
-</ol>
-<ul>
-<li><p>An example: To the extension of the previous example, suppose that we are interested in looking at the effect of Ph.D. degree on wage. For the sake of simplicity, suppose that students with GRE test score above 160 get the degree and those below the score don’t. The basic idea is that RD splits individuals into two groups below and above the score of 160 and get the difference in the outcome to estimate the average treatment effect. Thus the underlying assumption is that the ability and covariates of these two groups is similar enough that the wage comparison for those on either side of the GRE score of 160 gives us high internal validity. However, recall that the estimator is only so useful to estimate “local treatment effect” around the cutoff, otherwise the control group’s outcome wouldn’t be a good counterfactual to the treatment group. For example, comparing wages of individuals with GRE score very much far away from the cutoff, say those with score of 130 with those with 170, does not tell anything about whether that person holds a Ph.D. degree and thus would be a bad inference.</p></li>
-<li><p>Anything particular about standard errors: Bandwidth choice could affect the estimates and standard errors.</p></li>
-</ul>
+<p>First, simulate a DGP in which there is some treatment to be evaluated. Do this in a way that allows you to control whether it falls randomly on individuals or systematically with some observable characteristic.</p>
+<p>Second, consider how one might display the existing variation in treatment associated with individual characteristics. A nice visualization—something you could display on your webpage when you’re in the job market.</p>
 </div>
 <div id="ideas" class="section level2">
 <h2>Ideas</h2>
