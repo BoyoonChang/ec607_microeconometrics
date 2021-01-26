@@ -1,0 +1,1308 @@
+---
+title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
+author: Boyoon Chang
+date: "Winter 2020"
+#date: "<br>`r format(Sys.time(), '%d %B %Y')`"
+header-includes:
+  - \usepackage{mathtools}
+  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+  - \usepackage{amssymb}
+output: 
+  html_document: 
+    theme: flatly
+    highlight: tango
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+---
+
+```{r Setup, include = F}
+options(htmltools.dir.version = FALSE)
+library(pacman)
+p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr)
+# Define pink color
+red_pink <- "#e64173"
+turquoise <- "#20B2AA"
+orange <- "#FFA500"
+red <- "#fb6107"
+blue <- "#3b3b9a"
+green <- "#8bb174"
+grey_light <- "grey70"
+grey_mid <- "grey50"
+grey_dark <- "grey20"
+purple <- "#6A5ACD"
+slate <- "#314f4f"
+# Dark slate grey: #314f4f
+# Notes directory
+dir_slides <- "~/Dropbox/Courses/"
+# Knitr options
+opts_chunk$set(
+  comment = "#>",
+  fig.align = "center",
+  fig.height = 4,
+  fig.width = 6,
+  # dpi = 300,
+  cache = T,
+  warning = F,
+  message = F)
+# A blank theme for ggplot
+theme_empty <- theme_bw() + theme(
+  line = element_blank(),
+  rect = element_blank(),
+  strip.text = element_blank(),
+  axis.text = element_blank(),
+  plot.title = element_blank(),
+  axis.title = element_blank(),
+  plot.margin = structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_simple <- theme_bw() + theme(
+  line = element_blank(),
+  panel.grid = element_blank(),
+  rect = element_blank(),
+  axis.text.x = element_text(size = 10),
+  axis.text.y = element_text(size = 10),
+  axis.ticks = element_blank(),
+  plot.title = element_blank(),
+  axis.title.x = element_text(angle = 0, vjust = 0.5),
+  axis.title.y = element_text(angle = 90, vjust = 0.5),
+  legend.position = "none",
+  axis.line = element_line(color="black", size = .5)
+)
+```
+
+
+> Can I propose something like each of is having a master file... like this one... that we each use to collect our thoughts as we work through the next ten weeks? 
+
+
+
+# {.tabset .tabset-fade .tabset-pills}
+
+## A3 - The visualization of treatment variation
+
+> Due date: 26 January 2021 
+
+First, simulate a DGP in which there is some treatment to be evaluated. Do this in a way that allows you to control whether it falls randomly on individuals or systematically with some observable characteristic. 
+
+Second, consider how one might display the existing variation in treatment associated with individual characteristics. A nice visualization---something you could display on your webpage when you're in the job market. 
+
+#### Framework of this assignment 
+- Introduce selection bias into the model: This implies that selection into treatment is non-random. 
+- How does this selection into non-random treatment appear?
+    - Simple visualization about the placement of the treatment 
+    - Show the imbalance of the sample between control and treatment group 
+      (refer Glen's example, use shiny package, x-axis is treated or control; y axis would denote the control variables)
+- What does selection into non-random treatment imply about the estimation of the average treatment effect 
+
+```{r}
+# a case where the treatment is endogenous
+
+# data generating process
+## Suppose that we are estimating the treatment effect on wage.
+## Let's suppose that the treatment is a job training program
+library(truncnorm)
+set.seed(123)
+n = 1
+sim_iter <- function(n){
+  dgp_iter = tibble(
+    i = 1:n,
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    W = rnorm(n, 3,2),
+    IQ = round(rnorm(n, mean = 120, sd =20),digits = 0), 
+    EXP = rtruncnorm(rnorm(n, mean = 3, sd = 2)),
+    EDU = sample(c(12:21), n, replace = TRUE),
+    GENDER = sample(c("Male", "Female"), n , replace = TRUE),
+    MALE = ifelse(GENDER == "Male", 1, 0),
+    AGE = sample(c(24:80), n, replace = TRUE),
+    # RACE = sample(c("A", "W", "B", "H"), n, replace = TRUE, prob=c(0.2, 0.3, 0.3, 0.2)),
+    # w = rnorm(n, mean = 3, sd=2), 
+    X = 0.02*IQ + 0.05* EXP + 0.06*EDU + 
+        0.001*ifelse(GENDER=="Male",1,0) + 
+        0.07*AGE, 
+    # + 0.002*ifelse(RACE=="W",1,0),
+    y0 = X + u,
+    y1 = y0 + W + v, # suppose w being ITE an the arbitrary treatment effect imposed
+    t = y1 - y0, # 
+    # dummy variable (random and non-random)
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = ifelse( ifelse(MALE ==1, 
+                   IQ / 100 + e + 4 * EXP ,
+                   IQ / 120 + e + EDU/5 - AGE/45 ) > 3 , 1 , 0) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
+  )
+  bind_rows(
+    lm(y_r ~ d_r + IQ + EXP + EDU + MALE + AGE + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
+    lm(y_nr ~ d_nr + IQ + EXP + EDU + MALE + AGE + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr")
+  ) %>% mutate(treatment = c("random", "nonrandom"))
+}
+
+    # lm(y_r ~ d_r, data = dgp_iter) %>% broom::tidy() %>% filter(term == "d_r"),
+    # lm(y_r ~ d_r + IQ + EXP + EDU + MALE + AGE, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
+    # lm(y_r ~ d_r + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
+    # lm(y_nr ~ d_nr, data = dgp_iter) %>% broom::tidy() %>% filter(term == "d_nr"),
+    # lm(y_nr ~ d_nr + IQ + EXP + EDU + MALE + AGE, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr"),
+    # lm(y_nr ~ d_nr + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr"),
+#%>% mutate(controls = c("none", "controls", "W", "controls + W","none", "controls", "W", "controls + W"), treatment = c(rep("random",4), rep("nonrandom",4)))
+
+p_load(furrr)
+set.seed(1234)
+plan(multiprocess, workers = 12, .progress = T)
+invisible(future_options(seed = 1234L))
+small_df = future_map_dfr(rep(15,100), sim_iter)
+ggplot(data = small_df, aes(x= estimate, fill = treatment)) +
+  geom_density(color = NA, alpha = 0.6) + 
+  geom_hline(yintercept = 0) + 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  labs(x = "Estimate", y = "Density")+ 
+  scale_fill_viridis_d("Treatment", option="magma", end = 0.9) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position= "bottom")
+# ggplot(data = small_df) + geom_line(aes(x = GENDER, y = d_nr)) + 
+#   xlab("Covariate") + ylab("Treatment Status")
+# 
+
+
+small_df %>%
+  group_by(treatment) %>%
+  summarize(
+    "Mean Coef" = mean(estimate),
+    "Median Coef" = median(estimate),
+    "Std. Dev. Coef" = sd(estimate),
+    "Rejection Rate" = mean(p.value < 0.05)
+  ) %>%
+  hux() %>% huxtable::add_colnames() %>% ungroup()
+```
+
+```{r}
+# one_iter = sim_iter(300)
+dgp_iter = function(n){
+  tibble(
+    i = 1:n,
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    W = rnorm(n, 3,2),
+    IQ = round(rnorm(n, mean = 120, sd =20),digits = 0), 
+    EXP = rtruncnorm(rnorm(n, mean = 3, sd = 2)),
+    EDU = sample(c(12:21), n, replace = TRUE),
+    GENDER = sample(c("Male", "Female"), n , replace = TRUE),
+    MALE = ifelse(GENDER == "Male", 1, 0),
+    AGE = sample(c(24:80), n, replace = TRUE),
+    # RACE = sample(c("A", "W", "B", "H"), n, replace = TRUE, prob=c(0.2, 0.3, 0.3, 0.2)),
+    # w = rnorm(n, mean = 3, sd=2), 
+    X = 0.02*IQ + 0.05* EXP + 0.06*EDU + 
+        0.001*ifelse(GENDER=="Male",1,0) + 
+        0.07*AGE, 
+    # + 0.002*ifelse(RACE=="W",1,0),
+    y0 = X + u,
+    y1 = y0 + W + v, # suppose w being ITE an the arbitrary treatment effect imposed
+    t = y1 - y0, # 
+    # dummy variable (random and non-random)
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = ifelse( ifelse(MALE ==1, 
+                   IQ / 100 + e + 4 * EXP ,
+                   IQ / 120 + e + EDU/5 - AGE/45 ) > 3 , 1 , 0) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
+  )
+}
+one_iter = dgp_iter(300)
+# ui  = fluidPage(
+#   titlePanel("Test"),
+#   sidebarLayout(
+#     sidebarPanel(
+#       selectInput("variable", "Variable:",
+#                   c("GENDER", "EXP")),
+#       checkboxInput("outliers", "Show outliers", TRUE)
+#     ),
+#     mainPanel()
+#     )
+#     )
+one_iter$d_nr = as.factor(one_iter$d_nr)
+ggplot(one_iter) + geom_point(aes(x = IQ, y = y_nr, color = d_nr))
+ggplot(one_iter) + geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = y_nr, color = d_nr))
+ggplot(one_iter) + geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = y_nr, color = d_nr))
+ggplot(one_iter) + geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
+ggplot(one_iter %>% filter(GENDER == "Female")) + 
+  geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
+ggplot(one_iter %>% filter(GENDER == "Male")) + 
+  geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
+ggplot(one_iter %>% filter(GENDER == "Female")) + 
+  geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
+ggplot(one_iter %>% filter(GENDER == "Male")) + 
+  geom_boxplot(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
+ggplot(one_iter %>% filter(GENDER == "Male")) + 
+  geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
+
+
+```
+
+```{r}
+library(shiny)
+# runApp("~/shinyapp")
+ui <- pageWithSidebar(
+  headerPanel("Something"),
+  sidebarPanel(
+    selectInput("variable", "Variable:",
+                c("IQ" = "IQ", "Education"="EDU",
+                  "Gender" = "GENDER"),
+    checkboxInput("outliers", "Show outliers", TRUE)
+  ), 
+  mainPanel(
+    h3(textOutput("caption")),
+    plotOutput("mpgPlot")
+  )
+)
+)
+# one_iter$d_nr <- factor(one_iter$d_nr)
+# factor(one_iter$d_nr)
+server <- function(input, output){
+  formulaText <- reactive({
+    paste("d_nr ~", input$variable)
+  })
+  output$caption <- renderText({
+    formulaText()
+  })
+  output$mpgPlot <- renderPlot({
+    boxplot(as.formula(formulaText()),
+            data = one_iter,
+            outline = input$outliers,
+            col = "#75AADB", pch = 19)
+  })
+}
+
+shinyApp(ui, server)
+```
+
+```{r}
+##
+one_iter = dgp_iter(300)
+
+library(shiny)
+# runApp("~/shinyapp")
+ui <- pageWithSidebar(
+  headerPanel("Something"),
+  sidebarPanel(
+    selectInput("dataset","Data:",
+                choices =list(one_iter = "one_iter"), selected=NULL),
+    selectInput("variable", "Variable:", choices = NULL),
+    selectInput("group", "Group:", choices = NULL),
+    selectInput("plot.type", "Plot Type:", 
+                list(boxplot = "boxplot", histogram = "histogram", density = "density", bar = "bar")),
+    checkboxInput("show.points", "show points", TRUE),
+),
+
+  mainPanel(
+    h3(textOutput("caption")),
+    uiOutput("plot")
+  )
+)
+
+# one_iter$d_nr <- factor(one_iter$d_nr)
+# factor(one_iter$d_nr)
+# shiny server side code for each call
+server<-(function(input, output, session){
+
+  #update group and
+  #variables based on the data
+  observe({
+  #browser()
+    if(!exists(input$dataset)) return() #make sure upload exists
+    var.opts<-colnames(get(input$dataset))
+    updateSelectInput(session, "variable", choices = var.opts)
+    updateSelectInput(session, "group", choices = var.opts)
+  })
+
+  output$caption<-renderText({
+    switch(input$plot.type,
+           "boxplot" 	= 	"Boxplot",
+           "histogram" =	"Histogram",
+           "density" 	=	"Density plot",
+           "bar" 		=	"Bar graph")
+  })
+
+
+  output$plot <- renderUI({
+    plotOutput("p")
+  })
+
+  #get data object
+  get_data<-reactive({
+
+    if(!exists(input$dataset)) return() # if no upload
+
+    check<-function(x){is.null(x) || x==""}
+    if(check(input$dataset)) return()
+
+    obj<-list(data=get(input$dataset),
+          variable=input$variable,
+          group=input$group
+    )
+
+    #require all to be set to proceed
+    if(any(sapply(obj,check))) return()
+    #make sure choices had a chance to update
+    check<-function(obj){
+      !all(c(obj$variable,obj$group) %in% colnames(obj$data))
+    }
+
+    if(check(obj)) return()
+
+
+    obj
+
+  })
+
+  #plotting function using ggplot2
+  output$p <- renderPlot({
+
+    plot.obj<-get_data()
+
+    #conditions for plotting
+    if(is.null(plot.obj)) return()
+
+    #make sure variable and group have loaded
+    if(plot.obj$variable == "" | plot.obj$group =="") return()
+
+    #plot types
+    plot.type<-switch(input$plot.type,
+                      "boxplot" 	= geom_boxplot(),
+                      "histogram" =	geom_histogram(alpha=0.5,position="identity"),
+                      "density" 	=	geom_density(alpha=.75),
+                      "bar" 		=	geom_bar(position="dodge")
+    )
+
+
+    if(input$plot.type=="boxplot")	{		#control for 1D or 2D graphs
+      p<-ggplot(plot.obj$data,
+                aes_string(
+                  x 		= plot.obj$group,
+                  y 		= plot.obj$variable,
+                  fill 	= plot.obj$group # let type determine plotting
+                )
+      ) + plot.type
+
+      if(input$show.points==TRUE)
+      {
+        p<-p+ geom_point(color='black',alpha=0.5, position = 'jitter')
+      }
+
+    } else {
+
+      p<-ggplot(plot.obj$data,
+                aes_string(
+                  x 		= plot.obj$variable,
+                  fill 	= plot.obj$group,
+                  group 	= plot.obj$group
+                  #color 	= as.factor(plot.obj$group)
+                )
+      ) + plot.type
+    }
+
+    p<-p+labs(
+      fill 	= input$group,
+      x 		= "",
+      y 		= input$variable
+    )  +
+      .theme
+    print(p)
+  })
+
+  # set uploaded file
+  upload_data<-reactive({
+
+    inFile <- input$file1
+
+    if (is.null(inFile))
+      return(NULL)
+
+    #could also store in a reactiveValues
+    read.csv(inFile$datapath,
+             header = input$header,
+             sep = input$sep)
+  })
+
+  observeEvent(input$file1,{
+    inFile<<-upload_data()
+  })
+
+
+})
+
+# Create Shiny app ----
+shinyApp(ui, server)
+```
+
+
+
+
+```{r}
+library(huxtable)
+set.seed(1234)
+plan(multiprocess, workers = 12, .progress = T)
+invisible(future_options(seed = 1234L))
+big_df = future_map_dfr(rep(100,1000), sim_iter)
+ggplot(data = big_df, aes(x= estimate, fill = treatment)) +
+  geom_density(color = NA, alpha = 0.6) + 
+  geom_hline(yintercept = 0) + 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  labs(x = "Estimate", y = "Density")+ 
+  scale_fill_viridis_d("Treatment", option="magma", end = 0.9) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position= "bottom")
+big_df %>%
+  group_by(treatment) %>%
+  summarize(
+    "Mean Coef" = mean(estimate),
+    "Median Coef" = median(estimate),
+    "Std. Dev. Coef" = sd(estimate),
+    "Rejection Rate" = mean(p.value < 0.05)
+  ) %>%
+  hux() %>% huxtable::add_colnames() %>% ungroup()
+
+
+
+
+IQ + EXP + EDU + MALE + AGE
+# estimation
+var = c()
+m1 <- lm_robust(y_r ~ IQ + EXP + EDU + MALE + AGE + d_r + W , data = sim_dgp(100))
+summary(m1)
+m2 <- lm_robust(y_nr ~ IQ + EXP + EDU + MALE + AGE + d_nr, data = sim_dgp(100))
+summary(m2)
+m3 <- lm_robust(y_r ~ d_r + x, data = test_data)
+summary(m3)
+m4 <- lm_robust(y_nr ~ d_nr + x, data = test_data)
+summary(m4)
+m5 <- lm_robust(y_r ~ d_r + x + w, data = test_data)
+summary(m5)
+m6 <- lm(y_nr ~ d_nr + x + w, data = test_data)
+summary(m6)
+# ggplot
+ggplot(data = test_data) + geom_line(aes(x = GENDER, y = d_nr)) + 
+  xlab("Covariate") + ylab("Treatment Status")
+# simulation
+sim_dgp = function(n=300){
+  tibble(
+    i = 1:n, 
+    age = 
+  )
+}
+## constructing a function
+
+```
+
+
+```{r, eval = F}
+## showing visually how the treatment is populated among different groups.
+## Use shiny package to show that
+library(shiny)
+if (!require(shinyWidgets)) install.packages("shinyWidgets")
+if (!require(plotly)) install.packages("plotly")
+library(shinyWidgets)
+library(dslabs)
+library(tidyverse)
+library(plotly)
+
+## load data
+# data("01_hello")
+
+## Define UI for app that draws a histogram
+ui = fluidPage(
+  # App title
+  titlePanel("Boyoon Rocks!"), 
+  # Sidebar layout with input and output definitions
+  sidebarLayout(
+    # Sidebar panel for inputs
+    sidebarPanel(
+      # Input: Slider for the number of bins 
+      sliderInput(inputId = "bins",
+                  label = "Number of bins:",
+                  min = 1,
+                  max = 50,
+                  value = 30)
+    ),
+    # Main panel for displaying outputs 
+    mainPanel(
+      # Output: Histogram
+      plotOutput(outputId = "distPlot")
+    )
+  )
+)
+
+# Define server logic required to draw a histogram ----
+server <- function(input, output) {
+
+  # Histogram of the Old Faithful Geyser Data ----
+  # with requested number of bins
+  # This expression that generates a histogram is wrapped in a call
+  # to renderPlot to indicate that:
+  #
+  # 1. It is "reactive" and therefore should be automatically
+  #    re-executed when inputs (input$bins) change
+  # 2. Its output type is a plot
+  output$distPlot <- renderPlot({
+
+    x    <- faithful$waiting
+    bins <- seq(min(x), max(x), length.out = input$bins + 1)
+
+    hist(x, breaks = bins, col = "#75AADB", border = "white",
+         xlab = "Waiting time to next eruption (in mins)",
+         main = "Histogram of waiting times")
+
+    })
+
+}
+shinyApp(ui=ui, server=server)
+```
+
+```{r}
+###
+
+data("us_contagious_diseases")
+disease <- us_contagious_diseases
+disease <- mutate(disease, percapita = count/(population/100000)) %>%
+    pivot_longer(cols = c(count, percapita),
+                 names_to = "data", values_to = "value")
+
+test_data$d_nr <- as.factor(test_data$d_nr)
+ui <- fluidPage(
+    
+    titlePanel("Diseases in the US 1928-2011"),
+    selectInput(
+      inputId = c(), label = "Choose a variable"
+    )
+    # sidebarLayout(
+    #     sidebarPanel(
+    #         # inputs
+    #         selectizeInput("stateInput", "State",
+    #                        choices = unique(test_data$d_nr),  
+    #                        selected="1", multiple =FALSE), 
+    #         # checkboxGroupInput("diseaseInput", "Disease",
+            #                    choices = c("Hepatitis A",
+            #                                "Measles",
+            #                                "Mumps", "Pertussis",
+            #                                "Polio", "Rubella", 
+            #                                "Smallpox"),
+            #                    selected = c("Hepatitis A", "Polio")),
+            # sliderInput("yearInput", "Year", min=1928, max=2011, 
+            #             value=c(1928, 2011), sep=""),
+            # radioGroupButtons("dataInput", "Data",
+            #                   choiceNames = list("Count", "Per capita"),
+            #                   choiceValues = list("count", "percapita"))
+        ),  
+        
+        mainPanel(
+            # plotOutput("diseaseplot"),
+            # br(), br(),
+            verbatimTextOutput("stats"), 
+            br(), br(),
+            plotlyOutput("distplot")
+        ) 
+    )   
+)   
+
+server <- function(input, output) {
+    
+    d <- reactive({
+        test_data %>%
+            filter(d_nr == input$stateInputs)
+                   # disease %in% input$diseaseInput,
+                   # year >= input$yearInput[1],
+                   # year <= input$yearInput[2],
+                   # data == input$dataInput)
+    }) 
+    
+    
+    # output$diseaseplot <- renderPlot({
+    #     
+    #     ggplot(d(), aes(x=year, y = value, color=d_nr)) +
+    #         geom_density() + 
+    #         # theme_bw() +
+    #         xlab("Year") +
+    #         ylab(input$dataInput) +
+    #         ggtitle("Cases over time")
+    # })
+    
+    # output$stats <- renderPrint({
+    #     
+    #     aggregate(y_nr ~ d_nr, data = test_data, sum)
+    #     
+    # })
+    
+    output$distplot <- renderPlotly({
+        
+        box <- plot_ly(d(), y = ~y_nr,
+                       color = ~d_nr, type = "box")  %>%
+            layout(title = "Distribution of cases over different years")
+        
+    })
+    
+}
+
+shinyApp(ui=ui, server=server)
+```
+
+
+```{r}
+###
+
+data("us_contagious_diseases")
+disease <- us_contagious_diseases
+disease <- mutate(disease, percapita = count/(population/100000)) %>% 
+    pivot_longer(cols = c(count, percapita), 
+                 names_to = "data", values_to = "value")
+
+ui <- fluidPage(
+    
+    titlePanel("Diseases in the US 1928-2011"),
+    sidebarLayout(
+        sidebarPanel(
+            # inputs
+            selectizeInput("stateInput", "State",
+                           choices = unique(disease$state),  
+                           selected="Virginia", multiple =FALSE), 
+            checkboxGroupInput("diseaseInput", "Disease",
+                               choices = c("Hepatitis A",
+                                           "Measles",
+                                           "Mumps", "Pertussis",
+                                           "Polio", "Rubella", 
+                                           "Smallpox"),
+                               selected = c("Hepatitis A", "Polio")),
+            sliderInput("yearInput", "Year", min=1928, max=2011, 
+                        value=c(1928, 2011), sep=""),
+            radioGroupButtons("dataInput", "Data",
+                              choiceNames = list("Count", "Per capita"),
+                              choiceValues = list("count", "percapita"))
+        ),  
+        
+        mainPanel(
+            plotOutput("diseaseplot"),
+            br(), br(),
+            verbatimTextOutput("stats"), 
+            br(), br(),
+            plotlyOutput("distplot")
+        ) 
+    )   
+)   
+
+server <- function(input, output) {
+    
+    d <- reactive({
+        disease %>%
+            filter(state == input$stateInput,
+                   disease %in% input$diseaseInput,
+                   year >= input$yearInput[1],
+                   year <= input$yearInput[2],
+                   data == input$dataInput)
+    }) 
+    
+    
+    output$diseaseplot <- renderPlot({
+        
+        ggplot(d(), aes(x=year, y = value, color=disease)) +
+            geom_line() + 
+            theme_bw() +
+            xlab("Year") +
+            ylab(input$dataInput) +
+            ggtitle("Cases over time")
+    })
+    
+    output$stats <- renderPrint({
+        
+        aggregate(value ~ disease, data = d(), sum)
+        
+    })
+    
+    output$distplot <- renderPlotly({
+        
+        box <- plot_ly(d(), y = ~value,
+                       color = ~disease, type = "box")  %>%
+            layout(title = "Distribution of cases over different years",
+                   yaxis = list(title=input$dataInput))
+        
+    })
+    
+}
+
+shinyApp(ui=ui, server=server)
+```
+
+
+
+```{r eval = FALSE}
+# matching estimator
+#library(MatchIt)
+match.it <- matchit(d_r ~ x + w, data = test_data, method = "nearest", ratio=1)
+df.match = match.data(match.it)
+m2 <- lm(y_r ~ d_r, data = df.match)
+summary(m2)
+# diff-in-diff
+m3 <- lm((y1-y0) ~ d_r, data = test_data)
+summary(m3)
+# iv
+test_data$d_nr = as.factor(test_data$d_nr)
+fsr<- glm(d_nr ~ x, data = test_data, family="binomial")
+# summary(fsr)
+test_data$d_hat = predict(fsr, test_data, type = "response")
+m4 <- lm(y_r ~ d_hat, data = test_data )
+summary(m4)
+# rd
+???
+
+(ate = mean(test_data$t))
+# notice that ate_1 and ols with dummy variable produces the exact same output 
+(ate_1 = mean(test_data[test_data$d_r==1,]$y_r)-mean(test_data[test_data$d_r==0,]$y_r))
+m <- lm(y_r ~ d_r, data = test_data)
+vcov(m)
+sqrt(vcov(m))
+
+summary(lm(y_r ~ d_r, data = test_data))
+(std.error = sqrt(var(test_data$y_r, na.rm=TRUE)/length(test_data$y_r)))
+
+var(ate_1)
+length(ate_1)
+
+fun_iter <- function(iter, n = 10){
+  # Generate data
+  iter_df <- tibble(
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    x = rnorm(n, mean = 10, sd =3),
+    w = rnorm(n, mean = 3, sd=2), 
+    y0 = x + u,
+    y1 = y0 + w + v,
+    t = y1 - y0,
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = (x+e >10) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
+  )
+  ate = mean(iter_df$t)
+  # The difference estimator
+  est_1 = lm(y_r ~ d_r, data = iter_df) %>% broom::tidy()  %>% filter(term == "d_r") 
+  # The difference-in-difference estimator
+  lm(y_r ~ d_r)
+  bind_cols(ate=ate, est_1=est_1, i = iter)
+}
+
+d <- fun_iter(1:4)
+
+p_load(purrr)
+set.seed(1234)
+sim_list <- map(1:1000, fun_iter)
+sim_df <- bind_rows(sim_list)
+mean(sim_df$ate_1)
+sim_df$ate_1
+class(sim_df$ate_1)
+length(sim_df$ate_1)
+var(sim_df$ate_1)
+sd(sim_df$ate_1, na.rm = TRUE)/sqrt(length(sim_df$ate_1[!is.na(sim_df$ate_1)]))
+
+
+length(sim_df$ate_1[!is.na(sim_df$ate_1)])
+
+ggplot(sim_df, aes(x = std.error))+geom_density()+
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0, linetype = "longdash", color = "red") +
+  xlab("Standard error") +
+  ylab("Density") +  theme(legend.position = c(0.8, 0.8))
+```
+
+
+## A2 - Estimators
+
+> Due date: 19 January 2020
+
+_For each scenario below, first describe the intuition of the estimator---what is being compared, what problems it fixes, why it works. Second, the identification strategy, inclusive of the assumption required for the identification of a causal parameter.  Third, provide an example of the estimator in use, inclusive of the specific assumptions that would be operational in that example. (Examples can be from existing literature, or from your own research programme.) Fourth, comment on any particularly relevant considerations to be made with respect to the estimation of standard errors in each environment. (There may not be.) Responses will be evaluated based on accuracy, completeness and clarity._
+
+---
+
+A difference estimate of the effect of $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: Suppose random selection of subjects to treatment group and control group. The difference estimator compares the average outcome of the treated group with the average outcome of the control group to get the average causal treatment effect. It is the difference in average outcome between the two groups.  
+
+$$
+\begin{aligned}
+\textrm{A difference estimator}
+&= 
+E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=0)\\
+&= E(Y_{1i}|T_i=1) - E(Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&= E(Y_{1i}-Y_{0i}|T_i=1) + E(Y_{0i}|T_i=1)- E(Y_{0i}|T_i=0)\\
+&= \textrm{average treatment effect on the treated} + \textrm{selection bias (pre-treatment)}\\
+\end{aligned}
+$$
+
+- The identification assumption(s): 
+(a)  There is no selection bias in the absence of the treatment. Some individual characteristics do not govern the placement of the treatment, i.e., individuals are randomly selected to the treated or control group. This allows for the control group to be used as the counter-factual for the treated group ($E(Y_{0i}|T_i=1)=E(Y_{0i}|T_i=0)$). 
+(b)  It assumes that there are no other reasons except the treatment for the change in mean outcomes before and after the treatment. That is, the treatment stands for the impact of all factors that are different between the two groups. 
+(c)  The average outcome of the treated group remains constant throughout earlier and later periods of the treatment. The average outcome of the control group remains constant before and after the treatment. We don't consider the time component in difference estimator.  
+
+
+- An example: Provided that the control group and treatment group select into treatment randomly, difference estimator in RCT setting could provide average causal treatment effect.
+
+- Anything particular about standard errors: We may want to adjust for standard error if we see the variation of the outcome in treatment group different from the variation of the outcome in control group. However, here we may have too few clusters (two clusters), which could be problematic. 
+
+
+<br>
+A matching-type estimator of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: Suppose the selection into treatment is non-random but is well approximated by observable covariates ($X$) or by $f(X)$. A matching-type estimator first pairs up the individuals from the treated and control group that have similar distributions on the covariates. Then for each matching pair, treatment effect is calculated by taking the difference in the outcome. Lastly, by taking the average of those differences, we can reasonably argue that a matching-type estimate of the treatment effect is the average causal treatment effect. A matching-type estimator helps to mitigate the fundamental problem of causal inference by using an individual with similar characteristics as a counterfactual for the treated individual. 
+
+- The identification assumption(s): 
+(a) Treated and control group share the same covariates and these covariates are observable.
+(b) The selection into treatment is non-random and is well approximated by $X$ or $f(X)$.
+(c) Conditional independence assumption (CIA): Conditional on observed characteristics $X$, the assignment of treatment is independent of the treatment-specific outcomes so that selection bias disappears. Recall CIA is satisfied if $X$ includes all variables that affect both selection into treatment and outcomes. 
+(d) Overlap assumption: Conditional on observed characteristics $X$, the probability of being assigned to treated group is in between 0 and 1 ($Pr(T=1|X=x') \in (0,1)$). This implies that the probability of observing individuals in control group at each level of $X$ is positive. Notice that if $Pr(T=1|X=x')=1$, the there is no good matching individual in control group to be used as a counterfactual.
+
+- An example: Nearest-neighbor matching, propensity score methods are some of the matching estimators. 
+
+- Anything particular about standard errors: If variation in outcome across matching groups are different, we may account for it by using clustered standard error.
+
+
+<br>
+A difference-in-difference estimate of the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$. 
+
+- The intuition behind it: Difference-in-difference estimator is the time dimension added version of difference estimator and is used to estimate the average treatment effect. By including time dimension, the estimator addresses serial correlation of the outcomes. A difference-in-difference estimator compares the differences in average outcome in the treated group and control group across time. Suppose that the treated and control group share the same time trend. The difference-in-difference estimator isolates such trend component from the outcomes of the treated individuals. It does so by subtracting the differences in post-treatment and pre-treatment means of the control group from the difference in the post-treatment and pre-treatment means of the treated group. Note that this process also removes unobservable characteristics that are fixed across time within each group that could have contributed to the difference in outcome of the two groups.   
+
+- The identification assumption(s): All the OLS model assumptions apply for DiD if we run a regression for DiD estimator. In addition, DiD assumes parallel trend assumption. This implies that both treatment and control group share the same trend over time and thus their difference in outcome is constant if treatment did not occur. 
+
+- An example: Card and Krueger (1994) article about change in minimum wage on employment in the fast food sector. Having the change in employment in Pennsylvania to serve as a base, it controls for any bias caused by variables common to New Jersey and Pennsylvania. A simple statistical formulation of the model is $Y_{it} = \beta_0 + \beta_1 S_t + \beta_2 T_i + \beta_3 (S_t\times T_i) + \varepsilon_{it}$, where $S_t$ is time dummy ( $S_t = 0$ if $t=1$ and $S_t=1$ if $t=2$), and $T_i$ is the treatment dummy. The difference-in-difference estimate would then be $\beta_4$ which represents $(E(Y_{i2}|T_i=1)- E(Y_{i1}|T_i=1))-(E(Y_{i2}|T_i=0)- E(Y_{i1}|T_i=0))$. 
+
+- Anything particular about standard errors: It is helpful to use robust standard errors to account for autocorrelation or correlation within identical group before and after the treatment. 
+
+
+<br>
+Instrumenting for an endogenous regressor, $X_i$, with an instrument, $Z_i$, in order to retrieve an estimate of the causal effect of $X_i$ on $Y_i$. 
+
+- The intuition behind it: We control for the bad variation of $X_i$ by regressing it with respect to $Z_i$. We use the fitted $X_i$ to estimate the causal effect of $X_i$ on $Y_i$. IV methods solve for bias from measurement error in regression models. Recall that a regression coefficients is biased toward zero if the regressors contain large noise or measurement error. IV also solves for omitted variable bias in a sense that it isolates irrelevant variation of the endogenous regressors. 
+
+- The identification assumption(s): The instruments should be relevant in that its variation must be related to the variation in the instrumented variable $X_i$. The instruments have no effect on $Y_i$ except through $X_i$. The instruments should be exogenous or predetermined in that they are uncorrelated with the disturbances.  
+
+- An example: Consider a case where we are interested in the returns on schooling. The outcome variable is wage and the variable of interest is education. Here, education is defined to be years of schooling. Suppose education is endogenous, i.e. it is correlated with the error term. OLS estimator no longer produces consistent estimate since exogeneity assumption is violated. Thus we introduce an instrument variable, arguably a valid one to isolate bad variation from education. In general, 2SLS is used for IV estimator so at the first stage, education is regressed on the instrument to get the fitted value of education. Then on the second stage, wage is regressed on the fitted value of education. As long as the bad variation in education is well controlled for at the first stage, 2SLS produces consistent estimate for the average treatment effect. 
+
+- Anything particular about standard errors: Standard error in IV is reported to be in general larger than OLS standard error although IV estimators generate a consistent estimate in contrast to OLS with endogenous regressors. If the instruments are weak, i.e. they have very low correlation with the regressors, the instrumental variable estimators or 2SLS estimators could lead to large or inconsistent standard errors. 
+
+
+<br>
+A regression-discontinuity approach to estimating the effect of  $\mathbb{1}(T_i=1)$ on $Y_i$.
+
+- The intuition behind it: Suppose researchers have some knowledge that the non-random treatment is governed at least partly by some threshold value ($c$) of an observed covariate $X_i$ and that passing this threshold induces a change in potential outcome $Y_i$. RD then regards the discontinuity of the mean outcome along the covariate at the cutoff value as causal effect of treatment. Regression discontinuity comes in sharp and fuzzy. In sharp RD, we look at the discontinuity in conditional expectation of the outcome given the covariate to calculate an average causal effect of the treatment. The probability of the treatment changes from 0 to 1 (either not treated or treated) as $X_i$ moves across some threshold $c$. Then RD estimate the local average treatment effect by comparing the mean of the outcome that is right above and right below that threshold $c$. In fuzzy RD, the probability of the treatment that is strictly less than 1 changes as $X_i$ crosses the cutoff. This implies that the effect of $X_i$ crossing the cutoff has influence on the outcome as well as the probability of treatment. Therefore the treatment effect is defined by the ratio of these two effects. Fuzzy RD is similar to IV in a sense that it estimates a change in probability of treatment for variable $X_i-c$ and use the fitted probability of treatment to estimate the change in outcome.  If we extrapolate $E(Y_{0i}|X_i)$ and $E(Y_{1i}|X_i)$ not only upon the threshold $c$ but for the entire $X_i$ horizon, and compare the pre- and post-treatment differences in outcome means for those below the threshold to those above it, regression discontinuity is similar to the difference-in-difference estimator. The fuzzy RD estimates the local average treatment effect of the compliers.
+
+- The identification assumption(s):
+(a) Researchers know the assignment mechanism is some function of observable variable $X$. 
+(b) Conditional independence assumption: Conditional on the covariates, there is no variation in the treatment.
+(c) We observe a discontinuous change in the probability of treatment at some cut-off point. 
+(d) $E(Y_{1i}|X_i=x)$ and $E(Y_{0i}|X_i=x)$ are continuous in $x$. This assumption is necessary to extrapolate $E(Y_{0i}|X_i=x)$ around the neighborhood of the discontinuity to use it for counterfactual of the average outcome of treated individuals around that threshold.
+(e) Monotonicity assumption: Suppose $T_i(X=x^\star)$ denotes the potential treatment of $i$ with threshold $x^{\star}$. In fuzzy RD, $T_i(X)$ is non-increasing in $x^\star$ at $x^\star = c$. That is, increasing $x^\star$ marginally from $c$ to $c+\varepsilon$ doesn't make someone more likely to be treated, i.e. there is no defiers.   
+
+- An example: Suppose that we are interested in looking at the effect of Ph.D. degree on wage. For the sake of simplicity, suppose that students with GRE test score above 160 get the degree and those below the score don't. The basic idea is that RD splits individuals into two groups below and above the score of 160 and get the difference in the outcome to estimate the average treatment effect. Thus the underlying assumption is that the ability and covariates of these two groups are similar enough that the wage comparison for those on either side of the GRE score of 160 gives us high internal validity. However, recall that the estimator is only so useful to estimate "local treatment effect" around the cutoff, otherwise the control group's outcome wouldn't be a good counterfactual to the treatment group. For example, comparing wages of individuals with GRE score very much far away from the cutoff, say those with score of 130 with those with 170, does not tell anything about whether that person holds a Ph.D. degree.  
+
+- Anything particular about standard errors: Bandwidth selection could affect the estimates and standard errors. 
+
+## A1 - OVB simulation
+
+> Due date: 12 January 2020
+>
+> Please have your simulation ready to share in class on Tuesday.
+
+When people make the claim that _correlation does not imply causation_, they usually mean that the existence of some correlation between $y$ and $x_1$ does not imply that variation in $x_1$ _causes_ variation in $y$.
+
+- That is, they tend to be acknowledging that you can have correlation without causation
+
+**Assignment** Propose and simulate a data-generating process in which (**i**) causation runs from $x_1$ to $y$ but at the same time (**ii**) the correlation of $y$ and $x_1$ is zero. Write it in an Rmd file and make the argument visually.
+
+- Yes, at the end of this you should have simulated something (good) and demonstrated that the lack of correlation does not imply lack of causation (which is like a party trick).
+
+
+### Formal Definition of Correlation
+
+$$
+\begin{aligned}
+  r_{xy} 
+  &= \frac{s_{xy}}{s_{x}s_{y}} \\
+  &= \frac{(n-1)^{-1}\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}
+  {(n-1)^{-1}\sqrt{\sum_{i=1}^n(x_i-\bar{x})^2\sum_{i=1}^{n}(y_i-\bar{y})^2}}\\
+  &= \frac{\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}
+  {\sqrt{\sum_{i=1}^n(x_i-\bar{x})^2\sum_{i=1}^{n}(y_i-\bar{y})^2}}
+\end{aligned}
+$$
+To make correlation equal to zero, it should either be that the numerator which is the covariance between $x$ and $y$ is sufficiently small to approach zero, or that the denominator is sufficiently large which could happen if either the variation of $x$ or $y$ is very large. In the example that follows, I considered a case where the variance of $y$ is large that is driven by some omitted variable $z$.  
+
+```{r}
+## Looking at correlation
+fun_iter_corr <- function(iter, n = 30){
+  iter_df <- tibble(
+    e = rnorm(n, 0, 1),
+    z = rnorm(n, -100, 10),
+    x = rnorm(n, 1, 0.5), 
+    y = x + z + e
+  )
+  corr<- cor(iter_df$x, iter_df$y)
+}
+
+sim_df<-sapply(1:1000, fun_iter_corr)
+sim_df<-as.data.frame(sim_df)
+
+
+ggplot() + 
+  geom_density(data = sim_df, aes(x = sim_df), color = "black")+
+  xlab("correlation")  +
+  geom_vline(xintercept = 0, linetype = "longdash", color = "red") 
+
+```
+
+
+### Correlation in Broader Sense
+
+More broadly, suppose we define the correlation being the statistical significance of $x_1$ on $y$. In other words, if the null hypothesis that the coefficient estimate of $x_1$ on $y$ is zero is rejected at some alpha percent significance level, then $x_1$ is defined to be correlated with $y$. In other words, if we fail to reject the null hypothesis, then this implies that the coefficient estimate of $x_1$ on $y$ is not statistically different from zero, i.e. $x_1$ is not correlated with $y$. 
+
+Suppose that $y$ is the sum of $x_1$ and $\varepsilon$, i.e. random disturbances. When the magnitude and the standard error of the random disturbance, $\varepsilon$, is relatively greater than the causal factor, $x_1$, the coefficient estimate of $x_1$ could be reported as not statistically significant. See the example below:
+
+```{r}
+# first iteration
+data1 = tibble(e = rnorm(100, 1000, 500),
+               x = rnorm(100, 1, 0.5), 
+               y = x + e)
+summary(lm(y~x, data = data1))
+ggplot(aes(x = x, y = y), data = data1)+geom_point()
+cor(data1$x, data1$y)
+
+
+# function
+fun_iter_l <- function(iter, n = 30) {
+  iter_df <- tibble(
+    e = rnorm(n, 0, 15), 
+    x = rnorm(n, 1, 0.5), 
+    y = x + e
+  )
+  lm <- lm_robust(y ~ x, data = iter_df, se_type = "classical")
+  bind_rows(tidy(lm)) %>% 
+    select(1:5) %>% filter(term == "x") %>% 
+    mutate(se_type = c("classical"), i = iter, variation="large")
+}
+
+fun_iter_s <- function(iter, n = 30, a, b) {
+  # Generate data
+  iter_df <- tibble(
+    e = rnorm(n, 0, 0.5), 
+    x = rnorm(n, 1, 0.5), 
+    y = x + e
+  )
+  # Estimate models
+  lm <- lm_robust(y ~ x, data = iter_df, se_type = "classical")
+  # Stack and return results
+  bind_rows(tidy(lm)) %>%
+    select(1:5) %>% filter(term == "x") %>%
+    mutate(se_type = c("classical"), i = iter, variation="small")
+}
+
+
+# perform 100 iteration
+p_load(purrr)
+set.seed(1234)
+sim_list_l <- map(1:100, fun_iter_l)
+sim_list_s <- map(1:100, fun_iter_s)
+sim_df <- bind_rows(sim_list_l, sim_list_s)
+sim_df_s <- bind_rows(sim_list_s)
+
+#plotting
+ggplot(data = sim_df, aes(x = std.error, fill = variation)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  xlab("Standard error") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("var(e) large", "var(e) small"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+   theme(legend.position = c(0.8, 0.8))
+
+ggplot(data = sim_df, aes(x = statistic, fill = variation)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = qt(0.975, df = 28), linetype = "longdash", color = "red") +
+  xlab("t statistic") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("var(e) large", "var(e) small"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+  theme(legend.position = c(0.8, 0.8))
+```
+
+The first graph above shows the distribution of the standard error of $\hat{\beta}$ from 100 iterations (i.e. simulation). The distribution of the standard error of $\hat{\beta}$ when the variation of the disturbance is large tend to locate on the farther right to the distribution of the standard error of $\hat{\beta}$ when the variation of the disturbance is small. This implies that the volatility of the disturbance could result in large variation in the standard error of the point estimate of $\beta$. If such is the case, it is likely that the t-stat calculated based on it is reported to be small, which results in higher likelihood of not rejecting the null hypothesis that $\beta$ is zero, i.e. no correlation between $y$ and $x_1$. 
+
+The next graph shows the distribution of t-statistic of $\hat{\beta}$ from 100 iterations. The red dotted line denotes the 95$\%$ confidence interval. When the t-statistic for each 100 point estimate of $\beta$ falls outside the red dotted line, this indicates that we are likely to reject the null hypothesis that $\beta$ is zero. Notice that when the variance of disturbance term is small, we are more likely to conclude that $\beta$ estimate being different from 0. In other words, we are more likely to conclude causal inference from the regression. However, when the variation of the disturbance is large, the t-statistic of 100 point estimate of $\beta$ is likely to locate within the confidence interval, which may lead us to conclude that there is insufficient evidence to conclude causal relationship between $y$ and $x_1$. 
+
+
+
+### Other cases
+
+- When the model is misspecified: when the model is linearly specified in x when the true functional form of x is quadratic.
+```{r}
+df2 = tibble(x = rnorm(100, 2, 50), 
+             z = rnorm(100, 3, 1000),
+             e = rnorm(100, 0, 1),
+             y1 = x^2 + z + e,
+             y2 = x^2 + e,
+             y3 = x + e)
+ggplot(data = df2, aes(x = x, y = y1)) + geom_point()
+summary(lm(y1~x, data = df2))
+# ggplot(data = df2, aes(x = x, y = y2)) + geom_point()
+# summary(lm(y2~x, data = df2))
+```
+- When the sample that we are using from the data is truncated in a way that does not show a correlation
+
+
+
+
+## Ideas
+
+### Idea 1
+
+1. What is the question being asked of the data?
+<br>  - here
+
+1. Why do I care about it? Why should anyone else care?
+<br>  - here
+
+1. What methodologies are being used to answer the question?
+<br>  - here
+
+1. If a causal claim is being made, what must I assume in order to interpret the relationship as causal? 
+<br>  - here
+
+1. What are the main findings?
+<br>  - here
+
+---
+
+### Idea 2
+
+1. What is the question being asked of the data?
+1. Why do I care about it? Why should anyone else care?
+1. What methodologies are being used to answer the question?
+1. If a causal claim is being made, what must I assume in order to interpret the relationship as causal? 
+1. What are the main findings?
+
+---
+
+Etc.
+
+
+## Sim Example
+
+_When your intuition is exhausted or your confidence is lacking, you need a tool. When your intuition is on point but you also need a confidence boost, you need a tool. When you are writing estimators and you wish to demonstrate its properties, you need a tool._ 
+
+---
+
+> You took Ed Rubin's class... so I know you've seen the material below. I'm providing it here with some editing, so it's in this format, but do consider consulting the material from that class directly. 
+
+---
+
+### The recipe
+
+1. Define a data-generating process (DGP)
+1. Define an estimator or estimators, setting up the test/conditions you're looking for
+1. Set seed and run many iterations of
+<br>  a. Drawing a sample of size n from the DGP
+<br>  b. Conducting the exercise
+<br>  c. Record outcomes
+1. Communicate results
+
+---
+
+### The data-generating process
+
+$$
+\begin{align}
+  \text{Y}_{i} = 1 + e^{0.5 \text{X}_{i}} + \varepsilon_i
+\end{align}
+$$
+where $\text{X}_{i}\sim\mathop{\text{Uniform}}(0, 10)$ and $\varepsilon_i\sim\mathop{N}(0,15)$.
+
+
+```{r, sim_seed, include = F}
+set.seed(12345)
+```
+
+
+```{r, sim_dgp}
+library(pacman)
+p_load(dplyr)
+# Choose a size
+n <- 1000
+# Generate data
+dgp_df <- tibble(
+  ε = rnorm(n, sd = 15),
+  x = runif(n, min = 0, max = 10),
+  y = 1 + exp(0.5 * x) + ε
+)
+```
+
+```{r, sim_dply, printed, echo = F}
+head(dgp_df)
+```
+
+
+**The CEF (in orange), and the population least-squares regression line (in purple)**
+
+```{r, sim_pop_plot3, echo = F}
+ggplot(data = dgp_df, aes(x = x, y = y)) +
+  geom_point(alpha = 0.2, size = 2) +
+  stat_function(fun = function(x) 1 + exp(0.5 * x), alpha = 0.9, color = orange, size = 1.5) +
+  stat_smooth(method = lm, se = F, color = purple, size = 2) +
+  theme_simple 
+```
+
+---
+
+**Iterating**
+
+To make iterating easier, let's wrap our DGP in a function.
+
+```{r, sim_fun}
+fun_iter <- function(iter, n = 30) {
+  # Generate data
+  iter_df <- tibble(
+    ε = rnorm(n, sd = 15),
+    x = runif(n, min = 0, max = 10),
+    y = 1 + exp(0.5 * x) + ε
+  )
+}
+```
+We still need to run a regression and draw inference
+
+---
+
+### Inference
+
+We will use `lm_robust()` from the `estimatr` package for OLS and inference.
+
+- `se_type = "classical"` provides homoskedasticity-assuming SEs
+- `se_type = "HC2"` provides heteroskedasticity-robust SEs
+- `lm()` works for "spherical" standard errors but cannot calculate het-robust standard errors
+
+```{r, ex_lm_robust}
+lm_robust(y ~ x, data = dgp_df, se_type = "classical") %>% tidy() %>% select(1:5)
+lm_robust(y ~ x, data = dgp_df, se_type = "HC2") %>% tidy() %>% select(1:5)
+```
+
+---
+
+Now add these estimators to our iteration function...
+
+```{r, sim_fun2}
+fun_iter <- function(iter, n = 30) {
+  # Generate data
+  iter_df <- tibble(
+    ε = rnorm(n, sd = 15),
+    x = runif(n, min = 0, max = 10),
+    y = 1 + exp(0.5 * x) + ε
+  )
+  # Estimate models
+  lm1 <- lm_robust(y ~ x, data = iter_df, se_type = "classical")
+  lm2 <- lm_robust(y ~ x, data = iter_df, se_type = "HC2")
+  # Stack and return results
+  bind_rows(tidy(lm1), tidy(lm2)) %>%
+    select(1:5) %>% filter(term == "x") %>%
+    mutate(se_type = c("classical", "HC2"), i = iter)
+}
+```
+
+
+With that function in hand, let's run it 1,000 times.
+
+
+There are a lot of ways to run a single function over a list/vector of values.
+
+- `lapply()`, _e.g._, `lapply(X = 1:3, FUN = sqrt)`
+- `for()`, _e.g._, `for (x in 1:3) sqrt(x)`
+- `map()` from `purrr`, _e.g._, `map(1:3, sqrt)`
+
+Let's go with `map()` from the `purrr` package because it easily parallelizes across platforms using the `furrr` package.
+
+**Alternative 1: 1,000 iterations**
+
+```{r, ex_sim, eval = F}
+# Packages
+p_load(purrr)
+# Set seed
+set.seed(12345)
+# Run 1,000 iterations
+sim_list <- map(1:1e3, fun_iter)
+```
+
+**Alternative 2: Parallelized 1,000 iterations**
+
+```{r, ex_sim2, cache = T}
+# Packages
+p_load(purrr, furrr)
+# Set options
+set.seed(123)
+# Tell R to parallelize
+plan(multiprocess)
+# Run 10,000 iterations
+sim_list <- future_map(
+  1:1e3, fun_iter,
+  .options = future_options(seed = T)
+)
+```
+
+The `furrr` package (`future` + `purrr`) makes parallelization easy
+
+Our `fun_iter()` function returns a `data.frame`, and `future_map()` returns a `list` (of the returned objects).
+
+So `sim_list` is going to be a `list` of `data.frame` objects. We can bind them into one `data.frame` with `bind_rows()`.
+
+```{r, sim_bind}
+# Bind list together
+sim_df <- bind_rows(sim_list)
+```
+
+---
+
+### And the results?
+
+Comparing the distributions of standard errors for the coefficient on $x$
+
+```{r, sim_plot1, echo = F}
+ggplot(data = sim_df, aes(x = std.error, fill = se_type)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  xlab("Standard error") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("Classical", "Het. Robust"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+  theme_simple + theme(legend.position = c(0.8, 0.8))
+```
+
+
+Comparing the distributions of $t$ statistics for the coefficient on $x$
+
+```{r, sim_plot2, echo = F}
+ggplot(data = sim_df, aes(x = statistic, fill = se_type)) +
+  geom_density(color = NA) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = qt(0.975, df = 28), linetype = "longdash", color = red_pink) +
+  xlab("t statistic") +
+  ylab("Density") +
+  scale_fill_viridis(
+    "", labels = c("Classical", "Het. Robust"), discrete = T,
+    option = "B", begin = 0.25, end = 0.85, alpha = 0.9
+  ) +
+  theme_simple + theme(legend.position = c(0.8, 0.8))
+```
+
+
+
+
+
+
