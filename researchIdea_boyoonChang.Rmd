@@ -20,6 +20,7 @@ output:
 options(htmltools.dir.version = FALSE)
 library(pacman)
 p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr)
+library(truncnorm)
 # Define pink color
 red_pink <- "#e64173"
 turquoise <- "#20B2AA"
@@ -86,95 +87,18 @@ First, simulate a DGP in which there is some treatment to be evaluated. Do this 
 
 Second, consider how one might display the existing variation in treatment associated with individual characteristics. A nice visualization---something you could display on your webpage when you're in the job market. 
 
-#### Framework of this assignment 
+#### Framework of the Exercise and Brief Conclusion
+
+First, I will introduce selection bias into the model. Then based upon the selection bias, I compare the average treatment effect estimate under the two scenarios, when treatment is random and when treatment is not random. The initial finding is that this particular selection bias that I introduced does not contribute to the inconsistency of the estimate of the average treatment effect. See the steps and specific results below. 
+
+#### Results
+
 - Introduce selection bias into the model: This implies that selection into treatment is non-random. 
-- How does this selection into non-random treatment appear?
-    - Simple visualization about the placement of the treatment 
-    - Show the imbalance of the sample between control and treatment group 
-      (refer Glen's example, use shiny package, x-axis is treated or control; y axis would denote the control variables)
-- What does selection into non-random treatment imply about the estimation of the average treatment effect 
 
-```{r}
-# a case where the treatment is endogenous
+The data generating process below suggests how the wage is determined. Motivated by Griliches (1976), I constructed a hypothetical model where the wage is determined by some function of IQ, experience, education, age and gender. Treatment would be a job training program and we are interested in looking at the average treatment effect of the program on wage. 
 
-# data generating process
-## Suppose that we are estimating the treatment effect on wage.
-## Let's suppose that the treatment is a job training program
-library(truncnorm)
-set.seed(123)
-n = 1
-sim_iter <- function(n){
-  dgp_iter = tibble(
-    i = 1:n,
-    u = runif(n, -10, 10), 
-    v = runif(n, -5,5),
-    e = runif(n, -1,1),
-    W = rnorm(n, 3,2),
-    IQ = round(rnorm(n, mean = 120, sd =20),digits = 0), 
-    EXP = rtruncnorm(rnorm(n, mean = 3, sd = 2)),
-    EDU = sample(c(12:21), n, replace = TRUE),
-    GENDER = sample(c("Male", "Female"), n , replace = TRUE),
-    MALE = ifelse(GENDER == "Male", 1, 0),
-    AGE = sample(c(24:80), n, replace = TRUE),
-    # RACE = sample(c("A", "W", "B", "H"), n, replace = TRUE, prob=c(0.2, 0.3, 0.3, 0.2)),
-    # w = rnorm(n, mean = 3, sd=2), 
-    X = 0.02*IQ + 0.05* EXP + 0.06*EDU + 
-        0.001*ifelse(GENDER=="Male",1,0) + 
-        0.07*AGE, 
-    # + 0.002*ifelse(RACE=="W",1,0),
-    y0 = X + u,
-    y1 = y0 + W + v, # suppose w being ITE an the arbitrary treatment effect imposed
-    t = y1 - y0, # 
-    # dummy variable (random and non-random)
-    d_r = sample(c(1,0), n, replace = TRUE),
-    d_nr = ifelse( ifelse(MALE ==1, 
-                   IQ / 100 + e + 4 * EXP ,
-                   IQ / 120 + e + EDU/5 - AGE/45 ) > 3 , 1 , 0) %>% as.numeric(),
-    y_r = y0 + d_r*t,
-    y_nr = y0+ d_nr*t
-  )
-  bind_rows(
-    lm(y_r ~ d_r + IQ + EXP + EDU + MALE + AGE + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
-    lm(y_nr ~ d_nr + IQ + EXP + EDU + MALE + AGE + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr")
-  ) %>% mutate(treatment = c("random", "nonrandom"))
-}
+We think of two cases below based on randomness of the treatment. In particular, selection bias is introduced that is dependent on gender when the selection into treatment is non-random. That is, if male, subjects are selected into treatment when $\frac{IQ}{100} + 4 \cdot EXP+ e$ is greater than 3, whereas if female, subjects are selected into treatment when $\frac{IQ}{120}  + \frac{EDU}{5} - \frac{AGE}{45} + e$ is greater than 3. In other words, if male, selection into the job training program is positively related to $IQ$ and the $EXP$ which implies that as their IQ and experiences are high, they are more likely to be treated. If female, selection into the job training program is positively related to $IQ$ and $EDU$ but negatively correlated with $AGE$. This implies that they are more likely to be selected into treatment if their age is relatively low while their IQ and number of education are high. 
 
-    # lm(y_r ~ d_r, data = dgp_iter) %>% broom::tidy() %>% filter(term == "d_r"),
-    # lm(y_r ~ d_r + IQ + EXP + EDU + MALE + AGE, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
-    # lm(y_r ~ d_r + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
-    # lm(y_nr ~ d_nr, data = dgp_iter) %>% broom::tidy() %>% filter(term == "d_nr"),
-    # lm(y_nr ~ d_nr + IQ + EXP + EDU + MALE + AGE, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr"),
-    # lm(y_nr ~ d_nr + W, data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr"),
-#%>% mutate(controls = c("none", "controls", "W", "controls + W","none", "controls", "W", "controls + W"), treatment = c(rep("random",4), rep("nonrandom",4)))
-
-p_load(furrr)
-set.seed(1234)
-plan(multiprocess, workers = 12, .progress = T)
-invisible(future_options(seed = 1234L))
-small_df = future_map_dfr(rep(15,100), sim_iter)
-ggplot(data = small_df, aes(x= estimate, fill = treatment)) +
-  geom_density(color = NA, alpha = 0.6) + 
-  geom_hline(yintercept = 0) + 
-  geom_vline(xintercept = 3, linetype = "dashed" )+
-  labs(x = "Estimate", y = "Density")+ 
-  scale_fill_viridis_d("Treatment", option="magma", end = 0.9) +
-  theme_minimal(base_size = 12) +
-  theme(legend.position= "bottom")
-# ggplot(data = small_df) + geom_line(aes(x = GENDER, y = d_nr)) + 
-#   xlab("Covariate") + ylab("Treatment Status")
-# 
-
-
-small_df %>%
-  group_by(treatment) %>%
-  summarize(
-    "Mean Coef" = mean(estimate),
-    "Median Coef" = median(estimate),
-    "Std. Dev. Coef" = sd(estimate),
-    "Rejection Rate" = mean(p.value < 0.05)
-  ) %>%
-  hux() %>% huxtable::add_colnames() %>% ungroup()
-```
 
 ```{r}
 # one_iter = sim_iter(300)
@@ -191,14 +115,12 @@ dgp_iter = function(n){
     GENDER = sample(c("Male", "Female"), n , replace = TRUE),
     MALE = ifelse(GENDER == "Male", 1, 0),
     AGE = sample(c(24:80), n, replace = TRUE),
-    # RACE = sample(c("A", "W", "B", "H"), n, replace = TRUE, prob=c(0.2, 0.3, 0.3, 0.2)),
-    # w = rnorm(n, mean = 3, sd=2), 
     X = 0.02*IQ + 0.05* EXP + 0.06*EDU + 
-        0.001*ifelse(GENDER=="Male",1,0) + 
+        0.25*ifelse(GENDER=="Male",1,0) + 
         0.07*AGE, 
-    # + 0.002*ifelse(RACE=="W",1,0),
     y0 = X + u,
-    y1 = y0 + W + v, # suppose w being ITE an the arbitrary treatment effect imposed
+    # suppose w being ITE an the arbitrary treatment effect imposed
+    y1 = y0 + W + v, 
     t = y1 - y0, # 
     # dummy variable (random and non-random)
     d_r = sample(c(1,0), n, replace = TRUE),
@@ -210,242 +132,145 @@ dgp_iter = function(n){
   )
 }
 one_iter = dgp_iter(300)
-# ui  = fluidPage(
-#   titlePanel("Test"),
-#   sidebarLayout(
-#     sidebarPanel(
-#       selectInput("variable", "Variable:",
-#                   c("GENDER", "EXP")),
-#       checkboxInput("outliers", "Show outliers", TRUE)
-#     ),
-#     mainPanel()
-#     )
-#     )
-one_iter$d_nr = as.factor(one_iter$d_nr)
-ggplot(one_iter) + geom_point(aes(x = IQ, y = y_nr, color = d_nr))
-ggplot(one_iter) + geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = y_nr, color = d_nr))
-ggplot(one_iter) + geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = y_nr, color = d_nr))
-ggplot(one_iter) + geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
-ggplot(one_iter %>% filter(GENDER == "Female")) + 
-  geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
-ggplot(one_iter %>% filter(GENDER == "Male")) + 
-  geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr))
-ggplot(one_iter %>% filter(GENDER == "Female")) + 
-  geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
-ggplot(one_iter %>% filter(GENDER == "Male")) + 
-  geom_boxplot(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
-ggplot(one_iter %>% filter(GENDER == "Male")) + 
-  geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))
-
-
+prob_male_treat = one_iter %>% filter(MALE ==1 & (IQ / 100 + e + 4 * EXP > 3)) %>% summarize(counts = n()) /nrow(one_iter %>% filter(MALE==1)) %>% as.vector()
+# print(prob_male_treat)
+prob_female_treat = one_iter %>% filter(MALE ==0 & (IQ / 120 + e + EDU/5 - AGE/45 > 3)) %>% summarize(counts = n()) /nrow(one_iter %>% filter(MALE==0))%>% as.numeric()
+# print(prob_female_treat)
 ```
 
+
+
+```{r a3plot}
+# plot
+library(ggthemes)
+one_iter$d_nr = factor(one_iter$d_nr, levels = c(0,1), labels = c("Control", "Treated"))
+# plot treatment assignment and selection basis of female (female only)
+ggplot(one_iter %>% filter(GENDER == "Female")) + 
+  geom_boxplot(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = d_nr, color = d_nr)) + 
+  theme_light() + ylab("Group") + xlab("Selection Basis of Female")+
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1")+ 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  labs(title = "Treatment and Selection Basis of Female (Female Only)")
+# plot treatment assignment and selection basis of male ( male only)
+ggplot(one_iter %>% filter(GENDER == "Male")) + 
+  geom_boxplot(aes(x = IQ / 100 + e + 4 * EXP, y = d_nr, color = d_nr))+ 
+  theme_light() + ylab("Group") + xlab("Selection Basis of Male")+
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1") + 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  labs(title = "Treatment and Selection Basis of Male (Male Only)")
+# plot treatment and IQ 
+mean <- one_iter %>% group_by(d_nr) %>% summarise(mean=mean(IQ)) %>% ungroup()
+ggplot(one_iter) + 
+  geom_density(aes(x = IQ, color = d_nr)) + ylab("Frequency")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1") + 
+  geom_vline(data = mean, aes(xintercept=mean, color = d_nr), linetype = "dashed")
+# plot treatment and EXP
+mean <- one_iter %>% group_by(d_nr) %>% summarise(mean=mean(EXP)) %>% ungroup()
+ggplot(one_iter) + 
+  geom_density(aes(x = EXP, color = d_nr)) + ylab("Frequency")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1") + 
+  geom_vline(data = mean, aes(xintercept=mean, color = d_nr), linetype = "dashed")
+# plot treatment and EDU
+mean <- one_iter %>% group_by(d_nr) %>% summarise(mean=mean(EDU)) %>% ungroup()
+ggplot(one_iter) + 
+  geom_density(aes(x = EDU, color = d_nr)) + ylab("Frequency")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1") + 
+  geom_vline(data = mean, aes(xintercept=mean, color = d_nr), linetype = "dashed")
+# plot treatment and AGE
+mean <- one_iter %>% group_by(d_nr) %>% summarise(mean=mean(AGE)) %>% ungroup()
+ggplot(one_iter) + 
+  geom_density(aes(x = AGE, color = d_nr)) + ylab("Frequency")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1") + 
+  geom_vline(data = mean, aes(xintercept=mean, color = d_nr), linetype = "dashed")
+# plot treatment and GENDER
+ggplot(one_iter) + 
+  geom_bar(aes(x = d_nr, fill = GENDER)) + ylab("Frequency")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_fill_brewer(palette="Set1") 
+```
+
+Contrary to the initial set-up to have the treatment more likely to be assigned to male than female, we see higher proportion of female in the treated group than in control. Perhaps data generating process creates $\frac{IQ}{120}  + \frac{EDU}{5} - \frac{AGE}{45} + e$ more likely to be higher than $\frac{IQ}{100} + 4 \cdot EXP+ e$. Notice that the probability of male in the sample to cross the threshold 3 of being assigned to treatment is `r prob_male_treat[1,1]` whereas female in the sample to cross the threshold of being assigned to treatment is `r prob_female_treat[1,1]`. The higher probability of female sample to cross the threshold may explain the higher proportion of female in treated group than in control.
+
+Comparing other covariates, our treatment group seems to have higher IQ, greater number of experience and education, and are more likely to be younger. Below are the average treatment effect estimate without controlling for covariates and the plots showing the relationship of the selection basis and the wage level of the whole sample. As can be seen, we do not observe a stark differences in the wage level below and above the threshold. This could be because only one of the gender is influenced by the selection criteria and thus the other gender group that is not influenced by such criteria may have blurred the wage difference around the threshold.
+
 ```{r}
-library(shiny)
-# runApp("~/shinyapp")
-ui <- pageWithSidebar(
-  headerPanel("Something"),
-  sidebarPanel(
-    selectInput("variable", "Variable:",
-                c("IQ" = "IQ", "Education"="EDU",
-                  "Gender" = "GENDER"),
-    checkboxInput("outliers", "Show outliers", TRUE)
-  ), 
-  mainPanel(
-    h3(textOutput("caption")),
-    plotOutput("mpgPlot")
+one_iter %<>% mutate(d_g = ifelse(GENDER=="Male",1,0))
+mean <- one_iter %>% group_by(d_nr) %>% summarise(mean=mean(d_g)) %>% ungroup()
+one_iter %>% group_by(d_nr) %>% summarize(mean = mean(y_nr)) 
+# plot treatment and other variables
+ggplot(one_iter) + 
+  geom_boxplot(aes(x = d_nr, y = y_nr, color = d_nr)) + ylab("log Wage")+ theme_light() + 
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1")+ 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  labs(title = "Relationship between Log Wage and Treatment")
+# plot log wage and selection basis of male
+ggplot(one_iter) + 
+  geom_point(aes(x = IQ / 100 + e + 4 * EXP, y = y_nr, color = d_nr)) + 
+  ylab("log Wage")+ theme_light() + 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1")+
+  labs(title = "Relationship between Log Wage and Selection Basis of Male")+
+  geom_smooth(aes(x = IQ / 100 + e + 4 * EXP, y = y_nr, color = d_nr),method = "loess") + 
+  facet_wrap(~MALE)
+# plot log wage and selection basis of female
+ggplot(one_iter) + 
+  geom_point(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = y_nr, color = d_nr))+ 
+  ylab("log Wage")+ theme_light() + 
+  geom_vline(xintercept = 3, linetype = "dashed" )+
+  theme(legend.title = element_blank())+scale_colour_brewer(palette="Set1")+
+  labs(title = "Relationship between Log Wage and Selection Basis of Female") + 
+  geom_smooth(aes(x = IQ / 120 + e + EDU/5 - AGE/45 , y = y_nr, color = d_nr),method = "loess")+
+  facet_wrap(~MALE)
+```
+
+
+- Simulation to estimate average treatment effect 
+
+Next we look at how such non-random treatment plays out in simulation and estimation of the average treatment effect. Below I set sample size equal to 100 and performed 500 iterations. The results suggest that the treatment effect is fairly well estimated in the presence of selection bias. This is surprising since typically non-random treatment bias the average treatment effect. I would argue that the different selection basis between how each female and male are selected into treatment introduces arbitrary randomness into the model, which could have contributed to rather consistent estimate of the average treatment effect. We see greater consistency in average treatment effect estimate as we increase the sample size or the number of iterations.
+
+```{r}
+# a case where the treatment is endogenous
+# iterating simulation process
+library(truncnorm)
+set.seed(123)
+n = 1
+sim_iter <- function(n){
+  dgp_iter = tibble(
+    i = 1:n,
+    u = runif(n, -10, 10), 
+    v = runif(n, -5,5),
+    e = runif(n, -1,1),
+    W = rnorm(n, 3,2),
+    IQ = round(rnorm(n, mean = 120, sd =20),digits = 0), 
+    EXP = rtruncnorm(rnorm(n, mean = 3, sd = 2)),
+    EDU = sample(c(12:21), n, replace = TRUE),
+    GENDER = sample(c("Male", "Female"), n , replace = TRUE),
+    MALE = ifelse(GENDER == "Male", 1, 0),
+    AGE = sample(c(24:80), n, replace = TRUE),
+    X = 0.02*IQ + 0.05* EXP + 0.06*EDU + 
+        0.25*ifelse(GENDER=="Male",1,0) + 
+        0.07*AGE, 
+    y0 = X + u,
+    y1 = y0 + W + v, # suppose w being ITE an the arbitrary treatment effect imposed
+    t = y1 - y0, # 
+    d_r = sample(c(1,0), n, replace = TRUE),
+    d_nr = ifelse( ifelse(MALE ==1, 
+                   IQ / 100 + e + 4 * EXP ,
+                   IQ / 120 + e + EDU/5 - AGE/45 ) > 3 , 1 , 0) %>% as.numeric(),
+    y_r = y0 + d_r*t,
+    y_nr = y0+ d_nr*t
   )
-)
-)
-# one_iter$d_nr <- factor(one_iter$d_nr)
-# factor(one_iter$d_nr)
-server <- function(input, output){
-  formulaText <- reactive({
-    paste("d_nr ~", input$variable)
-  })
-  output$caption <- renderText({
-    formulaText()
-  })
-  output$mpgPlot <- renderPlot({
-    boxplot(as.formula(formulaText()),
-            data = one_iter,
-            outline = input$outliers,
-            col = "#75AADB", pch = 19)
-  })
+  bind_rows(
+    lm(y_r ~ d_r , data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_r"),
+    lm(y_nr ~ d_nr , data = dgp_iter)%>% broom::tidy() %>% filter(term == "d_nr")
+  ) %>% mutate(treatment = c("random", "nonrandom"))
 }
 
-shinyApp(ui, server)
-```
-
-```{r}
-##
-one_iter = dgp_iter(300)
-
-library(shiny)
-# runApp("~/shinyapp")
-ui <- pageWithSidebar(
-  headerPanel("Something"),
-  sidebarPanel(
-    selectInput("dataset","Data:",
-                choices =list(one_iter = "one_iter"), selected=NULL),
-    selectInput("variable", "Variable:", choices = NULL),
-    selectInput("group", "Group:", choices = NULL),
-    selectInput("plot.type", "Plot Type:", 
-                list(boxplot = "boxplot", histogram = "histogram", density = "density", bar = "bar")),
-    checkboxInput("show.points", "show points", TRUE),
-),
-
-  mainPanel(
-    h3(textOutput("caption")),
-    uiOutput("plot")
-  )
-)
-
-# one_iter$d_nr <- factor(one_iter$d_nr)
-# factor(one_iter$d_nr)
-# shiny server side code for each call
-server<-(function(input, output, session){
-
-  #update group and
-  #variables based on the data
-  observe({
-  #browser()
-    if(!exists(input$dataset)) return() #make sure upload exists
-    var.opts<-colnames(get(input$dataset))
-    updateSelectInput(session, "variable", choices = var.opts)
-    updateSelectInput(session, "group", choices = var.opts)
-  })
-
-  output$caption<-renderText({
-    switch(input$plot.type,
-           "boxplot" 	= 	"Boxplot",
-           "histogram" =	"Histogram",
-           "density" 	=	"Density plot",
-           "bar" 		=	"Bar graph")
-  })
-
-
-  output$plot <- renderUI({
-    plotOutput("p")
-  })
-
-  #get data object
-  get_data<-reactive({
-
-    if(!exists(input$dataset)) return() # if no upload
-
-    check<-function(x){is.null(x) || x==""}
-    if(check(input$dataset)) return()
-
-    obj<-list(data=get(input$dataset),
-          variable=input$variable,
-          group=input$group
-    )
-
-    #require all to be set to proceed
-    if(any(sapply(obj,check))) return()
-    #make sure choices had a chance to update
-    check<-function(obj){
-      !all(c(obj$variable,obj$group) %in% colnames(obj$data))
-    }
-
-    if(check(obj)) return()
-
-
-    obj
-
-  })
-
-  #plotting function using ggplot2
-  output$p <- renderPlot({
-
-    plot.obj<-get_data()
-
-    #conditions for plotting
-    if(is.null(plot.obj)) return()
-
-    #make sure variable and group have loaded
-    if(plot.obj$variable == "" | plot.obj$group =="") return()
-
-    #plot types
-    plot.type<-switch(input$plot.type,
-                      "boxplot" 	= geom_boxplot(),
-                      "histogram" =	geom_histogram(alpha=0.5,position="identity"),
-                      "density" 	=	geom_density(alpha=.75),
-                      "bar" 		=	geom_bar(position="dodge")
-    )
-
-
-    if(input$plot.type=="boxplot")	{		#control for 1D or 2D graphs
-      p<-ggplot(plot.obj$data,
-                aes_string(
-                  x 		= plot.obj$group,
-                  y 		= plot.obj$variable,
-                  fill 	= plot.obj$group # let type determine plotting
-                )
-      ) + plot.type
-
-      if(input$show.points==TRUE)
-      {
-        p<-p+ geom_point(color='black',alpha=0.5, position = 'jitter')
-      }
-
-    } else {
-
-      p<-ggplot(plot.obj$data,
-                aes_string(
-                  x 		= plot.obj$variable,
-                  fill 	= plot.obj$group,
-                  group 	= plot.obj$group
-                  #color 	= as.factor(plot.obj$group)
-                )
-      ) + plot.type
-    }
-
-    p<-p+labs(
-      fill 	= input$group,
-      x 		= "",
-      y 		= input$variable
-    )  +
-      .theme
-    print(p)
-  })
-
-  # set uploaded file
-  upload_data<-reactive({
-
-    inFile <- input$file1
-
-    if (is.null(inFile))
-      return(NULL)
-
-    #could also store in a reactiveValues
-    read.csv(inFile$datapath,
-             header = input$header,
-             sep = input$sep)
-  })
-
-  observeEvent(input$file1,{
-    inFile<<-upload_data()
-  })
-
-
-})
-
-# Create Shiny app ----
-shinyApp(ui, server)
-```
-
-
-
-
-```{r}
-library(huxtable)
+p_load(furrr)
 set.seed(1234)
 plan(multiprocess, workers = 12, .progress = T)
 invisible(future_options(seed = 1234L))
-big_df = future_map_dfr(rep(100,1000), sim_iter)
-ggplot(data = big_df, aes(x= estimate, fill = treatment)) +
+small_df = future_map_dfr(rep(100,500), sim_iter)
+ggplot(data = small_df, aes(x= estimate, fill = treatment)) +
   geom_density(color = NA, alpha = 0.6) + 
   geom_hline(yintercept = 0) + 
   geom_vline(xintercept = 3, linetype = "dashed" )+
@@ -453,7 +278,8 @@ ggplot(data = big_df, aes(x= estimate, fill = treatment)) +
   scale_fill_viridis_d("Treatment", option="magma", end = 0.9) +
   theme_minimal(base_size = 12) +
   theme(legend.position= "bottom")
-big_df %>%
+library(huxtable)
+table = small_df %>%
   group_by(treatment) %>%
   summarize(
     "Mean Coef" = mean(estimate),
@@ -461,357 +287,11 @@ big_df %>%
     "Std. Dev. Coef" = sd(estimate),
     "Rejection Rate" = mean(p.value < 0.05)
   ) %>%
-  hux() %>% huxtable::add_colnames() %>% ungroup()
-
-
-
-
-IQ + EXP + EDU + MALE + AGE
-# estimation
-var = c()
-m1 <- lm_robust(y_r ~ IQ + EXP + EDU + MALE + AGE + d_r + W , data = sim_dgp(100))
-summary(m1)
-m2 <- lm_robust(y_nr ~ IQ + EXP + EDU + MALE + AGE + d_nr, data = sim_dgp(100))
-summary(m2)
-m3 <- lm_robust(y_r ~ d_r + x, data = test_data)
-summary(m3)
-m4 <- lm_robust(y_nr ~ d_nr + x, data = test_data)
-summary(m4)
-m5 <- lm_robust(y_r ~ d_r + x + w, data = test_data)
-summary(m5)
-m6 <- lm(y_nr ~ d_nr + x + w, data = test_data)
-summary(m6)
-# ggplot
-ggplot(data = test_data) + geom_line(aes(x = GENDER, y = d_nr)) + 
-  xlab("Covariate") + ylab("Treatment Status")
-# simulation
-sim_dgp = function(n=300){
-  tibble(
-    i = 1:n, 
-    age = 
-  )
-}
-## constructing a function
-
+  hux() %>% huxtable::add_colnames() %>%  ungroup()
+table[-1,]
 ```
 
 
-```{r, eval = F}
-## showing visually how the treatment is populated among different groups.
-## Use shiny package to show that
-library(shiny)
-if (!require(shinyWidgets)) install.packages("shinyWidgets")
-if (!require(plotly)) install.packages("plotly")
-library(shinyWidgets)
-library(dslabs)
-library(tidyverse)
-library(plotly)
-
-## load data
-# data("01_hello")
-
-## Define UI for app that draws a histogram
-ui = fluidPage(
-  # App title
-  titlePanel("Boyoon Rocks!"), 
-  # Sidebar layout with input and output definitions
-  sidebarLayout(
-    # Sidebar panel for inputs
-    sidebarPanel(
-      # Input: Slider for the number of bins 
-      sliderInput(inputId = "bins",
-                  label = "Number of bins:",
-                  min = 1,
-                  max = 50,
-                  value = 30)
-    ),
-    # Main panel for displaying outputs 
-    mainPanel(
-      # Output: Histogram
-      plotOutput(outputId = "distPlot")
-    )
-  )
-)
-
-# Define server logic required to draw a histogram ----
-server <- function(input, output) {
-
-  # Histogram of the Old Faithful Geyser Data ----
-  # with requested number of bins
-  # This expression that generates a histogram is wrapped in a call
-  # to renderPlot to indicate that:
-  #
-  # 1. It is "reactive" and therefore should be automatically
-  #    re-executed when inputs (input$bins) change
-  # 2. Its output type is a plot
-  output$distPlot <- renderPlot({
-
-    x    <- faithful$waiting
-    bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-    hist(x, breaks = bins, col = "#75AADB", border = "white",
-         xlab = "Waiting time to next eruption (in mins)",
-         main = "Histogram of waiting times")
-
-    })
-
-}
-shinyApp(ui=ui, server=server)
-```
-
-```{r}
-###
-
-data("us_contagious_diseases")
-disease <- us_contagious_diseases
-disease <- mutate(disease, percapita = count/(population/100000)) %>%
-    pivot_longer(cols = c(count, percapita),
-                 names_to = "data", values_to = "value")
-
-test_data$d_nr <- as.factor(test_data$d_nr)
-ui <- fluidPage(
-    
-    titlePanel("Diseases in the US 1928-2011"),
-    selectInput(
-      inputId = c(), label = "Choose a variable"
-    )
-    # sidebarLayout(
-    #     sidebarPanel(
-    #         # inputs
-    #         selectizeInput("stateInput", "State",
-    #                        choices = unique(test_data$d_nr),  
-    #                        selected="1", multiple =FALSE), 
-    #         # checkboxGroupInput("diseaseInput", "Disease",
-            #                    choices = c("Hepatitis A",
-            #                                "Measles",
-            #                                "Mumps", "Pertussis",
-            #                                "Polio", "Rubella", 
-            #                                "Smallpox"),
-            #                    selected = c("Hepatitis A", "Polio")),
-            # sliderInput("yearInput", "Year", min=1928, max=2011, 
-            #             value=c(1928, 2011), sep=""),
-            # radioGroupButtons("dataInput", "Data",
-            #                   choiceNames = list("Count", "Per capita"),
-            #                   choiceValues = list("count", "percapita"))
-        ),  
-        
-        mainPanel(
-            # plotOutput("diseaseplot"),
-            # br(), br(),
-            verbatimTextOutput("stats"), 
-            br(), br(),
-            plotlyOutput("distplot")
-        ) 
-    )   
-)   
-
-server <- function(input, output) {
-    
-    d <- reactive({
-        test_data %>%
-            filter(d_nr == input$stateInputs)
-                   # disease %in% input$diseaseInput,
-                   # year >= input$yearInput[1],
-                   # year <= input$yearInput[2],
-                   # data == input$dataInput)
-    }) 
-    
-    
-    # output$diseaseplot <- renderPlot({
-    #     
-    #     ggplot(d(), aes(x=year, y = value, color=d_nr)) +
-    #         geom_density() + 
-    #         # theme_bw() +
-    #         xlab("Year") +
-    #         ylab(input$dataInput) +
-    #         ggtitle("Cases over time")
-    # })
-    
-    # output$stats <- renderPrint({
-    #     
-    #     aggregate(y_nr ~ d_nr, data = test_data, sum)
-    #     
-    # })
-    
-    output$distplot <- renderPlotly({
-        
-        box <- plot_ly(d(), y = ~y_nr,
-                       color = ~d_nr, type = "box")  %>%
-            layout(title = "Distribution of cases over different years")
-        
-    })
-    
-}
-
-shinyApp(ui=ui, server=server)
-```
-
-
-```{r}
-###
-
-data("us_contagious_diseases")
-disease <- us_contagious_diseases
-disease <- mutate(disease, percapita = count/(population/100000)) %>% 
-    pivot_longer(cols = c(count, percapita), 
-                 names_to = "data", values_to = "value")
-
-ui <- fluidPage(
-    
-    titlePanel("Diseases in the US 1928-2011"),
-    sidebarLayout(
-        sidebarPanel(
-            # inputs
-            selectizeInput("stateInput", "State",
-                           choices = unique(disease$state),  
-                           selected="Virginia", multiple =FALSE), 
-            checkboxGroupInput("diseaseInput", "Disease",
-                               choices = c("Hepatitis A",
-                                           "Measles",
-                                           "Mumps", "Pertussis",
-                                           "Polio", "Rubella", 
-                                           "Smallpox"),
-                               selected = c("Hepatitis A", "Polio")),
-            sliderInput("yearInput", "Year", min=1928, max=2011, 
-                        value=c(1928, 2011), sep=""),
-            radioGroupButtons("dataInput", "Data",
-                              choiceNames = list("Count", "Per capita"),
-                              choiceValues = list("count", "percapita"))
-        ),  
-        
-        mainPanel(
-            plotOutput("diseaseplot"),
-            br(), br(),
-            verbatimTextOutput("stats"), 
-            br(), br(),
-            plotlyOutput("distplot")
-        ) 
-    )   
-)   
-
-server <- function(input, output) {
-    
-    d <- reactive({
-        disease %>%
-            filter(state == input$stateInput,
-                   disease %in% input$diseaseInput,
-                   year >= input$yearInput[1],
-                   year <= input$yearInput[2],
-                   data == input$dataInput)
-    }) 
-    
-    
-    output$diseaseplot <- renderPlot({
-        
-        ggplot(d(), aes(x=year, y = value, color=disease)) +
-            geom_line() + 
-            theme_bw() +
-            xlab("Year") +
-            ylab(input$dataInput) +
-            ggtitle("Cases over time")
-    })
-    
-    output$stats <- renderPrint({
-        
-        aggregate(value ~ disease, data = d(), sum)
-        
-    })
-    
-    output$distplot <- renderPlotly({
-        
-        box <- plot_ly(d(), y = ~value,
-                       color = ~disease, type = "box")  %>%
-            layout(title = "Distribution of cases over different years",
-                   yaxis = list(title=input$dataInput))
-        
-    })
-    
-}
-
-shinyApp(ui=ui, server=server)
-```
-
-
-
-```{r eval = FALSE}
-# matching estimator
-#library(MatchIt)
-match.it <- matchit(d_r ~ x + w, data = test_data, method = "nearest", ratio=1)
-df.match = match.data(match.it)
-m2 <- lm(y_r ~ d_r, data = df.match)
-summary(m2)
-# diff-in-diff
-m3 <- lm((y1-y0) ~ d_r, data = test_data)
-summary(m3)
-# iv
-test_data$d_nr = as.factor(test_data$d_nr)
-fsr<- glm(d_nr ~ x, data = test_data, family="binomial")
-# summary(fsr)
-test_data$d_hat = predict(fsr, test_data, type = "response")
-m4 <- lm(y_r ~ d_hat, data = test_data )
-summary(m4)
-# rd
-???
-
-(ate = mean(test_data$t))
-# notice that ate_1 and ols with dummy variable produces the exact same output 
-(ate_1 = mean(test_data[test_data$d_r==1,]$y_r)-mean(test_data[test_data$d_r==0,]$y_r))
-m <- lm(y_r ~ d_r, data = test_data)
-vcov(m)
-sqrt(vcov(m))
-
-summary(lm(y_r ~ d_r, data = test_data))
-(std.error = sqrt(var(test_data$y_r, na.rm=TRUE)/length(test_data$y_r)))
-
-var(ate_1)
-length(ate_1)
-
-fun_iter <- function(iter, n = 10){
-  # Generate data
-  iter_df <- tibble(
-    u = runif(n, -10, 10), 
-    v = runif(n, -5,5),
-    e = runif(n, -1,1),
-    x = rnorm(n, mean = 10, sd =3),
-    w = rnorm(n, mean = 3, sd=2), 
-    y0 = x + u,
-    y1 = y0 + w + v,
-    t = y1 - y0,
-    d_r = sample(c(1,0), n, replace = TRUE),
-    d_nr = (x+e >10) %>% as.numeric(),
-    y_r = y0 + d_r*t,
-    y_nr = y0+ d_nr*t
-  )
-  ate = mean(iter_df$t)
-  # The difference estimator
-  est_1 = lm(y_r ~ d_r, data = iter_df) %>% broom::tidy()  %>% filter(term == "d_r") 
-  # The difference-in-difference estimator
-  lm(y_r ~ d_r)
-  bind_cols(ate=ate, est_1=est_1, i = iter)
-}
-
-d <- fun_iter(1:4)
-
-p_load(purrr)
-set.seed(1234)
-sim_list <- map(1:1000, fun_iter)
-sim_df <- bind_rows(sim_list)
-mean(sim_df$ate_1)
-sim_df$ate_1
-class(sim_df$ate_1)
-length(sim_df$ate_1)
-var(sim_df$ate_1)
-sd(sim_df$ate_1, na.rm = TRUE)/sqrt(length(sim_df$ate_1[!is.na(sim_df$ate_1)]))
-
-
-length(sim_df$ate_1[!is.na(sim_df$ate_1)])
-
-ggplot(sim_df, aes(x = std.error))+geom_density()+
-  geom_hline(yintercept = 0) +
-  geom_vline(xintercept = 0, linetype = "longdash", color = "red") +
-  xlab("Standard error") +
-  ylab("Density") +  theme(legend.position = c(0.8, 0.8))
-```
 
 
 ## A2 - Estimators
