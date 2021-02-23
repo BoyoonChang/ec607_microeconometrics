@@ -77,10 +77,16 @@ dgp_fun2 = function(ind_totalID = 6,
       return(DT)
     }
 d= dgp_fun2()
-d[d$treat==0 & d$time >6,]$beta
-d[d$treat==0 & d$time >6,]$time
+cbind(d[d$treat==0 & d$time >=6,]$time, 
+      d[d$treat==0 & d$time >=6,]$beta,
+      d[d$treat==1 & d$time >=6,]$beta,
+      d[d$treat==0 & d$time <6,]$beta,
+      d[d$treat==1 & d$time <6,]$beta,
+      d[d$treat==0 & d$time >=6,]$alpha,
+      d[d$treat==1 & d$time >=6,]$alpha,
+      d[d$treat==0 & d$time <6,]$alpha,
+      d[d$treat==1 & d$time <6,]$alpha
+)
+ggplot(d) + geom_jitter(data= d[d$treat==0, ], aes(x=time, y=y), color="steelblue") +
+  geom_jitter(data=d[d$treat==1,], aes(x=time, y=y), color="darkred")
 
-d[d$treat==1 & d$time >6,]$beta
-
-d[d$treat==0 & d$time <6,]$beta
-d[d$treat==1 & d$time <6,]$beta

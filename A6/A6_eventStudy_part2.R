@@ -128,25 +128,23 @@ dgp_fun2 = function(input_df){
       #### Note if pre_trend = post_trend, this is parallel trend
       
       # generating period specific slope variation (beta) 
-      beta = ifelse(time < pre_totalT+1, 
-                    # pre
-                    ifelse(treat == 0,
-                           # control gets b_pre
-                           b_pre,
-                           # treated gets b_pre + pre_slope
-                           b_pre+pre_slope),
-                    # post
-                    ifelse(treat ==0, 
-                           # control gets b_post
-                           rep(sapply(1:post_totalT, function(x){b_post*x}), each = ind_totalID),
-                           # treated gets b_post + post_slope
-                           rep(sapply(1:post_totalT, function(x){(b_post+post_slope)*x}), each = ind_totalID)))
+      # beta = 
       #### Note if pre_slope =0, then parallel trend
       
       DT = data.table(treat, n, pre_totalT, post_totalT, time, 
-                      ind_ID, alpha, beta, error, a_pre, a_post, b_pre, b_post, pre_trend, post_trend, pre_slope, post_slope)
+                      ind_ID, alpha, beta, error, 
+                      a_pre, a_post, b_pre, b_post, 
+                      pre_trend, post_trend, pre_slope, post_slope)
       
-      DT[, y := alpha + beta*treat + error][
+      DT[, beta := 
+           ifelse(time < pre_totalT, 
+                          ifelse(treat == 0, 
+                                 b_pre*time, 
+                                 (b_pre + pre_slope)*time),
+                          ifelse(treat == 0, 
+                                 b_post*(time-5), 
+                                 (b_post + post_slope)*(time-5)))][
+        , y := alpha + beta*treat + error][
         , ':=' (upper = max(y), lower = min(y)), by=time]
       
       return(DT)
@@ -154,7 +152,13 @@ dgp_fun2 = function(input_df){
   )
 }
 
-
+if (time < pre_total){
+  ifelse(treat == 0, 
+         b_pre*time, 
+         (b_pre + pre_slope)*time)
+}else if (time == pre_total){
+  
+}
 
 one_df = tibble(ind_totalID = 6, 
                 pre_totalT = 5, 
@@ -163,7 +167,7 @@ one_df = tibble(ind_totalID = 6,
                 a_post = 2, 
                 b_pre = 2,
                 b_post = 2,
-                pre_trend = 2,
+                pre_trend = 0,
                 post_trend = 10,
                 pre_slope = 0,
                 post_slope = 0)
@@ -187,7 +191,7 @@ ggplot(est_sum, aes(x=factor(time), y = estimate)) +
 input_df = expand.grid(ind_totalID = 20, 
                        pre_totalT = 5, 
                        post_totalT = 5:7, 
-                       a_pre = -1:1,
+                       a_pre = 1,
                        a_post = -1:1, 
                        b_pre = -1:1,
                        b_post = -1:1,
@@ -198,6 +202,19 @@ input_df = expand.grid(ind_totalID = 20,
 one_iter = dgp_fun(input_df)
 two_iter = dgp_fun2(input_df)
 
+two_df = expand.grid(ind_totalID = 20, 
+                     pre_totalT = 5, 
+                     post_totalT = 5:7, 
+                     a_pre = 5,
+                     a_post = 10, 
+                     b_pre = 1,
+                     b_post = 1,
+                     pre_trend = -1:1,
+                     post_trend = -1:1,
+                     pre_slope = -1:1,
+                     post_slope = -1:1)
+two_iter = dgp_fun2(two_df)
+View(two_iter)
 ## Shiny App
 #### Try out
 ## building ui
@@ -208,12 +225,12 @@ ui = fluidPage(
                   # sliderInput(inputId = "ind_totalID", label = "Number of id", min=6,  max=10, value=6),
                   # sliderInput(inputId = "pre_totalT", label = "Number of pre-periods", min=-3,  max=3, value=3),
                   sliderInput(inputId = "post_totalT", label = "post_totalT", min=5,  max=7, value=5),
-                  sliderInput(inputId = "a_pre", label = "a_pre", min=-1,  max=1, value=1),
-                  sliderInput(inputId = "a_post", label = "a_post", min=-1,  max=1, value=1),
-                  sliderInput(inputId = "b_pre", label = "b_pre", min=-1,  max=1, value=1),
-                  sliderInput(inputId = "b_post", label = "b_post", min=-1,  max=1, value=1),
+                  # sliderInput(inputId = "a_pre", label = "a_pre", min=5,  max=5, value=5),
+                  # sliderInput(inputId = "a_post", label = "a_post", min=5,  max=5, value=5),
+                  # sliderInput(inputId = "b_pre", label = "b_pre", min=-1,  max=1, value=1),
+                  # sliderInput(inputId = "b_post", label = "b_post", min=-1,  max=1, value=1),
                   sliderInput(inputId = "pre_trend", label = "pre_trend", min=-1,  max=1, value=1),
-                  sliderInput(inputId = "post_trend", label = "post_trend", min=-2,  max=2, value=2),
+                  sliderInput(inputId = "post_trend", label = "post_trend", min=-1,  max=1, value=1),
                   sliderInput(inputId = "pre_slope", label = "pre_slope", min=-1,  max=1, value=1),
                   sliderInput(inputId = "post_slope", label = "post_slope", min=-1,  max=1, value=1)
                   # sliderInput(inputId = "post_totalT", label = "Number of post-periods", min=5,  max=7, value=5),
@@ -222,7 +239,7 @@ ui = fluidPage(
                   # sliderInput(inputId = "b_pre", label = "Slope pre-periods", min=-1,  max=1, value=1),
                   # sliderInput(inputId = "b_post", label = "Slope post-periods", min=-1,  max=1, value=1),
                   # sliderInput(inputId = "pre_trend", label = "Trend pre-periods", min=-1,  max=1, value=1),
-                  # sliderInput(inputId = "post_trend", label = "Trend post-periods", min=-2,  max=2, value=2),
+                  # # sliderInput(inputId = "post_trend", label = "Trend post-periods", min=-2,  max=2, value=2),
                   # sliderInput(inputId = "pre_slope", label = "Slope pre-periods", min=-1,  max=1, value=1),
                   # sliderInput(inputId = "post_slope", label = "Slope post-periods", min=-1,  max=1, value=1)
                   # 
@@ -244,23 +261,25 @@ server = function(input, output){
 
   output$Plot = renderPlot({
     data_c_f = data_c %>% filter(post_totalT == input$post_totalT
-                                 & a_pre ==input$a_pre
-                                 & a_post == input$a_post 
-                                 & b_pre == input$b_pre
-                                 & b_post == input$b_post
+                                 # & a_pre ==input$a_pre
+                                 # & a_post == input$a_post 
+                                 # & b_pre == input$b_pre
+                                 # & b_post == input$b_post
                                  & pre_trend == input$pre_trend
                                  & post_trend == input$post_trend
                                  & pre_slope == input$pre_slope
-                                 & post_slope == input$post_slope)
+                                 & post_slope == input$post_slope
+                                 )
     data_t_f = data_t %>% filter(post_totalT == input$post_totalT
-                                 & a_pre ==input$a_pre
-                                 & a_post == input$a_post 
-                                 & b_pre == input$b_pre
-                                 & b_post == input$b_post
+                                 # & a_pre ==input$a_pre
+                                 # & a_post == input$a_post 
+                                 # & b_pre == input$b_pre
+                                 # & b_post == input$b_post
                                  & pre_trend == input$pre_trend
                                  & post_trend == input$post_trend
                                  & pre_slope == input$pre_slope
-                                 & post_slope == input$post_slope)
+                                 & post_slope == input$post_slope
+                                 )
     mean_y=mean(data_t_f[time>pre_totalT,]$y)
     ggplot() + 
       geom_jitter(data = data_c_f, 
@@ -291,7 +310,8 @@ server = function(input, output){
       geom_segment(data = data_t_f, aes(x = 1, xend = 5,
                                         y =mean(data_t_f[time <=5&treat==1]$y), 
                                         yend=mean(data_t_f[time <=5&treat==1]$y)), 
-                   color = "darkred")
+                   color = "darkred")+
+      ylim(0,50)
       # stat_summary(data = data_t_f, aes(x = time, y = data_c_f[time<=pre_totalT,]$y),fun="mean", color="black", geom="line")
   })
 }
