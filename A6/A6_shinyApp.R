@@ -8,7 +8,7 @@ library(ggplot2)
 p_load(broom, ggplot2, 
        ggthemes, viridis, dplyr, magrittr, 
        knitr, parallel, tidyverse, janitor, 
-       kableExtra, gridExtra, estimatr, huxtable)
+       kableExtra, gridExtra, estimatr, huxtable, data.table)
 
 
 ## Data generating process
