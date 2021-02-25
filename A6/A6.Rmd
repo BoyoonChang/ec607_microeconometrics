@@ -22,7 +22,7 @@ output:
 options(htmltools.dir.version = FALSE)
 library(pacman)
 # p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr, data.tables)
-p_load("data.table", "ggplot2", "collapse", "fixest", "knitr")
+p_load("data.table", "ggplot2", "collapse", "fixest", "knitr", dplyr, broom, magrittr, stringr, tidyverse)
 
 ```
 
@@ -238,7 +238,7 @@ b = a %>% pivot_longer(y_t1:y_t4, names_to = "case", values_to = "y_t")
 
 ggplot() + 
   geom_jitter(data = b[b$treat==1,], 
-              aes(x = time, y = y_t, color = case))  +
+              aes(x = time, y = y_t, color = case), alpha=0.2)  +
   stat_summary(data = b[b$treat==1,],
               aes(x= time, y = y_t, color = case),fun=mean, geom="line", alpha = 1,size = 1) + 
   geom_jitter(data = b[b$treat==0,], 
