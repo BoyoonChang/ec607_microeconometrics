@@ -35,7 +35,7 @@ dgp_fun = function(ind_totalID = 6,
   beta_noise_pre = rep(0, each=pre_totalT*ind_totalID)
   ## variation of slope across post-treatment period (non-parallel trend post period)
   # beta_noise_post = rep(rnorm(post_totalT , 2*as.numeric(time), sd = 0), each =ind_totalID )
-  beta_noise_post = rep(sapply(1:post_totalT, function(x){rnorm(1, 2*x, 3*x)}), each = ind_totalID)
+  beta_noise_post = rep(sapply(1:post_totalT, function(x){rnorm(1, 2*x, 1)}), each = ind_totalID)
   
   beta_noise = c(beta_noise_pre, beta_noise_post)
   DT = data.table(treat, n, pre_totalT, time, ind_ID, alpha, 
@@ -52,9 +52,8 @@ d = dgp_fun()
 # d[, treat:=sample(c(0,1), size = length(d$time), replace = TRUE, prob=c(0.5,0.5)), by = ind_ID]
 # summary(felm(y~))
 library(fixest)
-d$time = relevel(factor(d$time), ref=max(d$pre_totalT)+1)
-est = feols(y ~ as.factor(time)*treat
-      |ind_ID, data = d) 
+d$time = relevel(factor(d$time), ref="5")
+est = feols(y ~ as.factor(time)*treat, data = d) 
 est_sum = est %>% tidy() %>% filter(str_detect(term, coll(":treat")))
 est_sum$time = as.numeric(str_sub(est_sum$term, 16, -7))
 t_cv = qt(0.025, df = (max(d$n)-2), lower.tail = FALSE)

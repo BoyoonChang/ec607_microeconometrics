@@ -21,7 +21,13 @@ output:
 ```{r Setup, include = F}
 options(htmltools.dir.version = FALSE)
 library(pacman)
-p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr)
+# p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr, data.tables)
+p_load("data.table", "ggplot2", "collapse", "fixest")
+
+```
+
+
+```{r}
 # Define pink color
 red_pink <- "#e64173"
 turquoise <- "#20B2AA"
@@ -96,8 +102,6 @@ where $T_{it}=1$ captures the arrival of treatment (in period $T$). The sum is m
 
 ```{r}
 ## Step 0: load packages
-library(pacman)
-p_load("data.table", "ggplot2", "collapse", "fixest")
 
 
 ## Step 1: Create a panel
@@ -187,14 +191,14 @@ dgp_fun2 = function(ind_totalID = 100,
   # control outcome
   y_c = c_intercept + alpha_noise_c + c_slope * time +error
   # treated outcome
-  y_t = c_intercept + alpha_noise_t + ifelse(time<=5, 5+c_slope*time, 10+t_slope*time ) + error
+  # y_t = c_intercept + alpha_noise_t + ifelse(time<=5, 5+c_slope*time, 10+t_slope*time ) + error
   # counterfactual outcome
   ## parallel trend
   y_cf= c_intercept + 5 + alpha_noise_t + c_slope * time + error
   ## non-parallel trend
-  y_cf1 = c_intercept + 5 + alpha_noise_t + ifelse(time<=5, c_slope*time, c_slope*5 )+error
+  y_t1 = c_intercept + 5 + alpha_noise_t + error
   ## diverging trend
-  y_cf2 = c_intercept + 5 + alpha_noise_t + ifelse(time<=5, c_slope*time, (t_slope-1)*time )+error
+  y_t2 = c_intercept + alpha_noise_t + ifelse(time<=5, 5+c_slope*time, 10+t_slope*time ) + error
   ## Aschenfelter dip
   y_t3 = c_intercept + alpha_noise_t + ifelse(time<=5, ifelse(time == 5, 0, 5+c_slope*time), 10+t_slope*time )+error
   ## Anticipated treatment
@@ -205,10 +209,10 @@ dgp_fun2 = function(ind_totalID = 100,
       treat*(1-post)*(5+c_slope*time)+treat*post*(10+t_slope*time)+error
   
   DT = data.table(time, post, ind_ID, n, error, treat, alpha, alpha_noise_c, alpha_noise_t,
-                  y_c, y_t, y, 
+                  y_c, y, 
                   y_cf, 
-                  y_cf1,
-                  y_cf2,
+                  y_t1,
+                  y_t2,
                   y_t3,
                   y_t4
                   )
@@ -221,47 +225,29 @@ a =dgp_fun2(ind_totalID = 100,
             c_intercept = 0,
             c_slope = 5,
             t_slope = 10)
-b = a %>% pivot_longer(y_cf:y_cf2, names_to = "counter_factual", values_to = "y_cf")
+b = a %>% pivot_longer(y_t1:y_t4, names_to = "case", values_to = "y_t")
 
 ggplot() + 
   geom_jitter(data = b[b$treat==1,], 
-              aes(x = time, y = y_t), color = "darkred", alpha = 0.2, size = 1)+
-  stat_summary(data = b[b$treat==1,], 
-               aes(x= time, y = y_t),color = "darkred",fun=mean, geom="line", alpha = 1,size = 1) +
-  geom_jitter(data = b[b$treat==1 & b$counter_factual!="y_cf",], 
-                aes(x= time, y = y_cf, color = counter_factual),alpha = 0.2, size = 1) +
-  stat_summary(data = b[b$counter_factual!="y_cf",], 
-               aes(x=time, y = y_cf, color = counter_factual),fun=mean, geom="line", alpha = 1,size = 1) +
-  geom_jitter(data = b[b$treat==0,], aes(x = time, y = y_c), color = "steelblue", alpha = 0.2, size = 1)+
-  stat_summary(data = b[b$treat==0,], aes(x=time, y = y_c),color = "steelblue",fun=mean, geom="line", alpha = 1,size = 1)+
-  geom_vline(xintercept = 6, linetype="dashed")+
-  ylab("y")+
-  xlab("Time") +
-  scale_color_viridis_d()+
-  stat_summary(data = b[b$treat==1 & b$counter_factual == "y_cf",], 
-               aes(x= time, y = y_cf), color = "black", fun=mean, geom="line", linetype = "dotted", alpha = 1,size = 1) 
-b = b %>% pivot_longer(y_t3:y_t4, names_to = "treated_outcome", values_to = "y_t.other")
-ggplot() + 
-  geom_jitter(data = b[b$treat==1,], 
-              aes(x = time, y = y_t), color = "darkred", alpha = 0.2, size = 1)+
+              aes(x = time, y = y_t, color = case))  +
   stat_summary(data = b[b$treat==1,],
-              aes(x= time, y = y_t),color = "darkred",fun=mean, geom="line", alpha = 1,size = 1) +
-  geom_jitter(data = b[b$treat==1,], 
-              aes(x= time, y = y_t.other, color = treated_outcome),alpha = 0.2, size = 1) +
-  stat_summary(data = b[b$treat==1,], aes(x=time, y = y_t.other, color = treated_outcome),
-               fun=mean, geom="line", alpha = 1,size = 1) +
+              aes(x= time, y = y_t, color = case),fun=mean, geom="line", alpha = 1,size = 1) + 
   geom_jitter(data = b[b$treat==0,], 
               aes(x = time, y = y_c), color = "steelblue", alpha = 0.2, size = 1)+
   stat_summary(data = b[b$treat==0,], aes(x=time, y = y_c),color = "steelblue",
                fun=mean, geom="line", alpha = 1,size = 1)+
+  stat_summary(data = b[b$treat==1,], 
+               aes(x= time, y = y_cf), color = "black", fun=mean, geom="line", linetype = "dotted", alpha = 1,size = 1) +
   geom_vline(xintercept = 6, linetype="dashed")+
   ylab("y")+
   xlab("Time") +
-  scale_color_viridis_d()+
-  stat_summary(data = b[b$treat==1 & b$counter_factual == "y_cf",], 
-               aes(x= time, y = y_cf), color = "black", fun=mean, geom="line", linetype = "dotted", alpha = 1,size = 1) 
-
+  scale_color_viridis_d()
 ```
+
+
+
+
+
 ```{r}
 model_sim= function(ind_totalID = 100, 
                     pre_totalT = 5, 
