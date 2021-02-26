@@ -321,7 +321,7 @@ plot_fun=function(i) {p = ggplot(sim_data %>% filter(rep==i), aes(x=factor(time)
 }
 ```
 
-Following graphs show the outcome trends of the treated as well as the outcome trends of the control group. In the parallel trend assumption, we have the following plot and the event study figure.
+Following graphs show the outcome of the treated as well as the outcome of the control group during the analysis period. There are five pre-treatment periods and five post-treatment periods. The treatment is first introduced at period 6. The number of subjects is set to 100. In the parallel trend assumption, we have the following plot and the event study figure.
 
 ```{r}
 p0=ggplot() + 
@@ -351,7 +351,7 @@ grid.arrange(p0, ef0, ncol=2)
 ```
 
 
-Now I investigate the cases that violate parallel trend assumption. Notice that the outcome trend of the control group is fixed and I only varied the outcome of the treated either in the post-treatment periods or in pre-treatment periods. I considered four cases that violate a parallel trend assumption. In the first case, I've set the treatment effect equal to zero and that the outcome of the treated is constant across the analysis period. In the second case, I've set the outcome of the treated to have a parallel trend with the outcome of the control in pre-treatment periods, but have it diverge in post treatment periods. In the third case, I've considered an Ashenfelter dip where the outcome of the treated falls significantly at one point in time, right before the introduction of the treatment. In the last case, I've set the outcome of the treated to slowly decrease until the point at which the treatment is introduced to account for an anticipated response to treatment among treated individuals. There are five pre-treatment periods and five post-treatment periods. The treatment is first introduced at period 6. The number of subjects is set to 100.  
+Now I investigate the cases that violate parallel trend assumption. Notice that the outcome trend of the control group is fixed and I only varied the outcome of the treated either in the post-treatment periods or in pre-treatment periods. I considered four cases that violate a parallel trend assumption. In the first case, I've set the treatment effect equal to zero and that the outcome of the treated is constant across the analysis period. In the second case, I've set the outcome of the treated to have a parallel trend with the outcome of the control in pre-treatment periods, but have it diverge in post treatment periods. In the third case, I've considered an Ashenfelter dip where the outcome of the treated falls significantly at one point in time, right before the introduction of the treatment. In the last case, I've set the outcome of the treated to slowly decrease until the point at which the treatment is introduced to account for an anticipated response to treatment among treated individuals. 
 
 ```{r}
 grid.arrange(ggplot_fun(1), ggplot_fun(2), 
