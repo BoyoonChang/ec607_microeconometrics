@@ -2,7 +2,7 @@
 title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
 author: Boyoon Chang
 date: "Winter 2020"
-#date: "<br>`r format(Sys.time(), '%d %B %Y')`"
+#date: "<br>27 March 2021"
 header-includes:
   - \usepackage{mathtools}
   - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
@@ -30,61 +30,11 @@ output:
 
 
 *Q:* What is the DD model prepared to well identify? (_Level differences._) 
-```{r Setup, include = F}
-options(htmltools.dir.version = FALSE)
-library(pacman)
-p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr, scales, huxtable)
-library(truncnorm)
-# Define pink color
-red_pink <- "#e64173"
-turquoise <- "#20B2AA"
-orange <- "#FFA500"
-red <- "#fb6107"
-blue <- "#3b3b9a"
-green <- "#8bb174"
-grey_light <- "grey70"
-grey_mid <- "grey50"
-grey_dark <- "grey20"
-purple <- "#6A5ACD"
-slate <- "#314f4f"
-# Knitr options
-opts_chunk$set(
-  comment = "#>",
-  fig.align = "center",
-  fig.height = 4,
-  fig.width = 6,
-  # dpi = 300,
-  cache = T,
-  warning = F,
-  message = F)
-# A blank theme for ggplot
-theme_empty <- theme_bw() + theme(
-  line = element_blank(),
-  rect = element_blank(),
-  strip.text = element_blank(),
-  axis.text = element_blank(),
-  plot.title = element_blank(),
-  axis.title = element_blank(),
-  plot.margin = structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit"),
-  legend.position = "none"
-)
-theme_simple <- theme_bw() + theme(
-  line = element_blank(),
-  panel.grid = element_blank(),
-  rect = element_blank(),
-  axis.text.x = element_text(size = 10),
-  axis.text.y = element_text(size = 10),
-  axis.ticks = element_blank(),
-  plot.title = element_blank(),
-  axis.title.x = element_text(angle = 0, vjust = 0.5),
-  axis.title.y = element_text(angle = 90, vjust = 0.5),
-  legend.position = "none",
-  axis.line = element_line(color="black", size = .5)
-)
-```
 
 
-```{r}
+
+
+```r
 n = 1000
 t = 6
 
@@ -147,7 +97,8 @@ I considered three cases:
 $$
 y_{it} = \alpha+\beta_0T_i+\beta_1S_t+TEffect(T_i \times S_t) +\varepsilon_{it}
 $$
-```{r}
+
+```r
 ggplot() + 
   geom_point(data = one_iter %>% filter(treat==0), aes(x = time1, y = y_c), color = "steelblue") +
   geom_point(data = one_iter %>% filter(treat==1), aes(x=time1, y=y_t1), color = "darkred") +
@@ -157,6 +108,8 @@ ggplot() +
   ylab("Outcome Variable")
 ```
 
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-2-1.png" style="display: block; margin: auto;" />
+
 - In the second case, parallel trends throughout the analysis period is assumed but both the level and the slope of the treated outcomes shift in post-treatment periods.
 
 $$
@@ -164,7 +117,8 @@ y_{it} = \alpha+\beta_0T_i+(\beta_1+\beta_2)S_t+TEffect(T_i \times S_t) +\vareps
 $$
 
 
-```{r}
+
+```r
 ggplot() + 
   geom_point(data = one_iter %>% filter(treat==0), aes(x = time1, y = y_c), color = "steelblue") +
   geom_point(data = one_iter %>% filter(treat==1), aes(x=time1, y=y_t2), color = "plum") +
@@ -174,9 +128,12 @@ ggplot() +
   ylab("Outcome Variable")
 ```
 
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-3-1.png" style="display: block; margin: auto;" />
+
 - The slope change in post-treatment period is more visible from the following plot that combines plots in case 1 and case 2. 
 
-```{r}
+
+```r
 ggplot() + 
   geom_point(data = one_iter %>% filter(treat==0), aes(x = time1, y = y_c), color = "steelblue") +
   geom_point(data = one_iter %>% filter(treat==1), aes(x=time1, y=y_t1), color = "darkred") +
@@ -185,12 +142,14 @@ ggplot() +
   geom_vline(xintercept=t/2, linetype = "dashed")+
   xlab("Time")+
   ylab("Outcome Variable")
-
 ```
+
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
 
 - In the last case, parallel trend assumption is violated and the gap between treated outcomes and the outcomes in control increases over time in post-treatment periods.
 
-```{r}
+
+```r
 ggplot() + 
   geom_point(data = one_iter %>% filter(treat==0), aes(x = time1, y = y_c), color = "steelblue") +
   geom_point(data = one_iter %>% filter(treat==1), aes(x=time1, y=y_t2), color = "purple") +
@@ -200,10 +159,13 @@ ggplot() +
   ylab("Outcome Variable")
 ```
 
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+
 The sample size is set to be 1000 with six periods. I have set the value of treatment effect equal to 30. I performed 1000 iterations to estimate the treatment effect using DD model. The plot colored in dark red denotes the distribution of the estimate in case 1. The plot colored in plum denotes the distribution of the estimate in case 2. The plot colored in purple denotes the distribution of the estimate in case 3. Notice that DD estimator produces consistent estimate of the treatment effect only in case 1 when parallel trends is assumed not just in pre-treatment periods but throughout the analysis periods. Recall that the true parameter of the treatment effect from DD model is 30. Notice also that when parallel trends assumption is violated such that the counterfactual of the treated in post-treatment periods is no longer a constant increase of the control, the DD estimate is inconsistent and in this specific case is upward biased.   
 
 
-```{r}
+
+```r
 model_sim= function(n = 1000, t = 6, beta0 = 15, beta1 = 2, beta2 = 3, alpha = 7, TEffect=30){
   d = sim_fun(n, t , beta0 , beta1 , beta2 , alpha , TEffect)
   m1 = lm(y1~treat*post, data = d) %>% summary()
@@ -247,8 +209,9 @@ ggplot()+
   geom_density(aes(beta_np2), sim_data, fill = "purple")+
   geom_vline(xintercept=mean(sim_data$beta_np2), linetype = "dashed") +
   xlab("Distribution of DD Estimates")
-
 ```
+
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 
 *Q:* Where do changes in slope (say, subsequent to treatment) show up then? (_They end up in the DD estimate. Do we want it to? Is there theory suggesting that we should anticipate only a level shift, or a change in both level and slope?_)
@@ -262,7 +225,8 @@ The changes in slope shows up as part of the DD estimate. Notice that the DD est
 
 **Part 2.** Produce an event study figure on the same DGP.
 <br>
-```{r}
+
+```r
 ggplot(one_iter, aes(x = time, y = diff1)) +
   geom_pointrange(aes(ymin = min(diff1), ymax = max(diff1)), alpha = 0.7) +
   geom_vline(xintercept = n/2, alpha = 0.3, linetype = "dashed", size = 0.3) +
@@ -279,9 +243,12 @@ ggplot(one_iter, aes(x = time, y = diff1)) +
   xlim(0,5)
 ```
 
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
 I plotted the difference in outcomes between treated and control across time that corresponds to case 1, i.e. when there is only level difference. This plot shows a one-time increase in the difference in outcomes between treated and control group at period 3, when the treatment is first introduced. Notice that the difference in outcomes stays constant across post-treatment periods. 
 
-```{r}
+
+```r
 ggplot(one_iter, aes(x = time, y = diff2)) +
   geom_pointrange(aes(ymin = min(diff2), ymax = max(diff2)), alpha = 0.7) +
   geom_vline(xintercept = n/2, alpha = 0.3, linetype = "dashed", size = 0.3) +
@@ -300,6 +267,8 @@ ggplot(one_iter, aes(x = time, y = diff2)) +
   )+
   xlim(0,5)
 ```
+
+<img src="A5_boyoonChang_files/figure-html/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 I plotted the difference in outcomes between treated and control across time that corresponds to case 2, i.e. when there are both slope and level difference. This plot also shows a significant increase in the difference in outcomes between treated and control group starting period 3, when the treatment is first introduced. However notice that the difference in outcomes no longer stays constant across post-treatment periods. The effect of slope changes is now reflected through the increasing difference in outcomes between treatment group and control group over time in post-treatment periods. Therefore, depending on the length of the post-treatment periods, the treatment effect estimate varies using DD model. If the theory suggests that the intensity of the treatment increases over time, then it would be reasonable to consider a change to both level and slope. However, researchers may need to provide a convincing argument about quantifying the treatment intensity that changes over time as well as selecting the length of the post-treatment periods.
 
