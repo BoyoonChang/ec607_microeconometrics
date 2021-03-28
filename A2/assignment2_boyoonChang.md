@@ -1,33 +1,20 @@
 ---
-title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
-author: Boyoon Chang
-date: "Winter 2020"
-#date: "<br>27 March 2021"
-header-includes:
-  - \usepackage{mathtools}
-  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
-  - \usepackage{amssymb}
+title: "Assignment 2"
+author: "Boyoon Chang"
+date: "March 27, 2021"
 output: 
-  html_document:
-    toc: false
-    toc_depth: 3  
-    number_sections: false
+  html_document: 
+    code_folding: hide
     theme: flatly
-    highlight: tango  
+    highlight: tango
     toc_float:
-      collapsed: true
-      smooth_scroll: true
+      collapsed: yes
+      smooth_scroll: yes
     keep_md: true
 ---
 
 
 
-
-> Can I propose something like each of is having a master file... like this one... that we each use to collect our thoughts as we work through the next ten weeks? 
-
-
-
-# {.tabset .tabset-fade .tabset-pills}
 
 
 ## A2 - Estimators
