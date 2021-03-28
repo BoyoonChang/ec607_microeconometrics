@@ -14,6 +14,7 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: yes
+    keep_md: true
 ---
 
 ```{r Setup, include = F}
