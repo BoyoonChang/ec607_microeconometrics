@@ -2,7 +2,7 @@
 title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
 author: Boyoon Chang
 date: "Winter 2020"
-#date: "<br>`r format(Sys.time(), '%d %B %Y')`"
+#date: "<br>27 March 2021"
 header-includes:
   - \usepackage{mathtools}
   - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
@@ -18,67 +18,10 @@ output:
     keep_md: true
 ---
 
-```{r Setup, include = F}
-options(htmltools.dir.version = FALSE)
-library(pacman)
-# p_load(broom, latex2exp, leaflet, ggplot2, ggthemes, viridis, dplyr, magrittr, knitr, parallel, rddtools, readxl, emoGG, dslabs, gapminder, extrafont, Ecdat, wooldridge, tidyverse, janitor, kableExtra, gridExtra, estimatr, data.tables)
-p_load("data.table", "ggplot2", "collapse", "fixest", "knitr", dplyr, 
-       broom, magrittr, stringr, tidyverse, gridExtra)
-
-```
 
 
-```{r include=FALSE}
-# Define pink color
-red_pink <- "#e64173"
-turquoise <- "#20B2AA"
-orange <- "#FFA500"
-red <- "#fb6107"
-blue <- "#3b3b9a"
-green <- "#8bb174"
-grey_light <- "grey70"
-grey_mid <- "grey50"
-grey_dark <- "grey20"
-purple <- "#6A5ACD"
-slate <- "#314f4f"
-# Dark slate grey: #314f4f
-# Notes directory
-dir_slides <- "~/Dropbox/Courses/"
-# Knitr options
-opts_chunk$set(
-  comment = "#>",
-  fig.align = "center",
-  fig.height = 4,
-  fig.width = 6,
-  # dpi = 300,
-  cache = T,
-  warning = F,
-  message = F)
-# A blank theme for ggplot
-theme_empty <- theme_bw() + theme(
-  line = element_blank(),
-  rect = element_blank(),
-  strip.text = element_blank(),
-  axis.text = element_blank(),
-  plot.title = element_blank(),
-  axis.title = element_blank(),
-  plot.margin = structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit"),
-  legend.position = "none"
-)
-theme_simple <- theme_bw() + theme(
-  line = element_blank(),
-  panel.grid = element_blank(),
-  rect = element_blank(),
-  axis.text.x = element_text(size = 10),
-  axis.text.y = element_text(size = 10),
-  axis.ticks = element_blank(),
-  plot.title = element_blank(),
-  axis.title.x = element_text(angle = 0, vjust = 0.5),
-  axis.title.y = element_text(angle = 90, vjust = 0.5),
-  legend.position = "none",
-  axis.line = element_line(color="black", size = .5)
-)
-```
+
+
 
 
 
@@ -101,7 +44,8 @@ where $T_{it}=1$ captures the arrival of treatment (in period $T$). The sum is m
 
 Below is the event study figure where the treated and control follow a parallel trend in the pre-treatment period but diverging trend in the post-treatment period. 
 
-```{r}
+
+```r
 ##########################
 # formulating dgp function
 dgp_fun = function(ind_totalID = 6, 
@@ -163,13 +107,16 @@ ggplot(est_sum, aes(x=factor(time), y = estimate)) +
   geom_vline(xintercept=6, linetype="dashed")
 ```
 
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-2-1.png" style="display: block; margin: auto;" />
+
 <br>
 
 
 **Part 2:** Build into that DGP the potential for **(i)** non-parallel trends, **(ii)** parallel pre-treatment trends, with trends diverging in post treatment periods, **(iii)** an Ashenfelter dip, and **(iv)** a treatment that is anticipated (in a way that has units "responding" before it arrives. (_There are more violations, obviously, but these are a good set to start with. Add others if you are in an area that you think has a particular challenge._)
 
 
-```{r}
+
+```r
 ##########################################################
 # generating dgp functions
 dgp_fun2 = function(ind_totalID = 100, 
@@ -323,7 +270,8 @@ plot_fun=function(i) {p = ggplot(sim_data %>% filter(rep==i), aes(x=factor(time)
 
 Following graphs show the outcome of the treated as well as the outcome of the control group during the analysis period. There are five pre-treatment periods and five post-treatment periods. The treatment is first introduced at period 6. The number of subjects is set to 100. In the parallel trend assumption, we have the following plot and the event study figure.
 
-```{r}
+
+```r
 p0=ggplot() + 
   geom_jitter(data = b[b$treat==1,], 
               aes(x = time, y = y), color = "darkred", alpha=0.2)  +
@@ -350,20 +298,49 @@ ef0=ggplot(sim_data %>% filter(rep==0), aes(x=factor(time), y = estimate)) +
 grid.arrange(p0, ef0, ncol=2)
 ```
 
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+
 
 Now I investigate the cases that violate parallel trend assumption. Notice that the outcome trend of the control group is fixed and I only varied the outcome of the treated either in the post-treatment periods or in pre-treatment periods. I considered four cases that violate a parallel trend assumption. In the first case, I've set the treatment effect equal to zero and that the outcome of the treated is constant across the analysis period. In the second case, I've set the outcome of the treated to have a parallel trend with the outcome of the control in pre-treatment periods, but have it diverge in post treatment periods. In the third case, I've considered an Ashenfelter dip where the outcome of the treated falls significantly at one point in time, right before the introduction of the treatment. In the last case, I've set the outcome of the treated to slowly decrease until the point at which the treatment is introduced to account for an anticipated response to treatment among treated individuals. 
 
-```{r}
+
+```r
 grid.arrange(ggplot_fun(1), ggplot_fun(2), 
              ggplot_fun(3), ggplot_fun(4), ncol=2)
+```
+
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+
+```r
 grid.arrange(plot_fun(1),  plot_fun(2), 
              plot_fun(3), plot_fun(4), ncol=2)
+```
 
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-2.png" style="display: block; margin: auto;" />
+
+```r
 grid.arrange(ggplot_fun(1), plot_fun(1), ncol=2)
+```
+
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-3.png" style="display: block; margin: auto;" />
+
+```r
 grid.arrange(ggplot_fun(2), plot_fun(2), ncol=2)
+```
+
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-4.png" style="display: block; margin: auto;" />
+
+```r
 grid.arrange(ggplot_fun(3), plot_fun(3), ncol=2)
+```
+
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-5.png" style="display: block; margin: auto;" />
+
+```r
 grid.arrange(ggplot_fun(4), plot_fun(4), ncol=2)
 ```
+
+<img src="A6_boyoonChang_files/figure-html/unnamed-chunk-5-6.png" style="display: block; margin: auto;" />
 
 
 ---
