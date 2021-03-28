@@ -1,12 +1,7 @@
 ---
-title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
-author: Boyoon Chang
-date: "Winter 2020"
-#date: "<br>`r format(Sys.time(), '%d %B %Y')`"
-header-includes:
-  - \usepackage{mathtools}
-  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
-  - \usepackage{amssymb}
+title: "Assignment 6"
+author: "Boyoon Chang"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: 
   html_document: 
     code_folding: hide
@@ -79,10 +74,6 @@ theme_simple <- theme_bw() + theme(
   axis.line = element_line(color="black", size = .5)
 )
 ```
-
-
-
-# {.tabset .tabset-fade .tabset-pills}
 
 
 ## A6 - Event study

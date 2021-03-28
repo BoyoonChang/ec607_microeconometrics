@@ -1,12 +1,7 @@
 ---
-title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
-author: Boyoon Chang
-date: "Winter 2020"
-#date: "<br>27 March 2021"
-header-includes:
-  - \usepackage{mathtools}
-  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
-  - \usepackage{amssymb}
+title: "Assignment 5"
+author: "Boyoon Chang"
+date: "March 27, 2021"
 output: 
   html_document: 
     code_folding: hide

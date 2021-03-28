@@ -378,6 +378,5 @@ When comparing two extreme cases of $\rho=0$, i.e. no correlation between indivi
 
 ---
 
-[GlenWaddell.com](http://GlenWaddell.com)
 
 
