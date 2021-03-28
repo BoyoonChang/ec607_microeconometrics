@@ -15,6 +15,7 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: yes
+    keep_md: true
 ---
 
 ```{r Setup, include = F}
@@ -371,7 +372,7 @@ kable(reject_rate[,c(3,4,5)],
   kable_styling(bootstrap_options="striped", full_width = FALSE)
 ```
 
-When comparing two extreme cases of $\rho=0$, i.e. no correlation between individuals within cluster, and $\rho=1$, i.e. perfect correlation between individuals within cluster, it seems that the rate of true parameter being outside of the confidence interval is higher under $\rho=1$ using ordinary standard error. However, such inflated standard error of the point estimate is well adjusted for by using clustered standard error. As can be seen from the above tables, the rate in which the confidence interval includes true parameter is now around 95$\%$, as has been initially specified. (The above tables show the list of rates that true parameter falls outside the confidence interval.)
+When comparing two extreme cases of $\rho=0$, i.e. no correlation between individuals within cluster, and $\rho=1$, i.e. perfect correlation between individuals within cluster, it seems that the rate of true parameter being outside of the confidence interval is higher under $\rho=1$ using ordinary standard error. However, such inflated standard error of the point estimate is well adjusted for by using clustered standard error. As can be seen from the above tables, the rate in which the confidence interval includes true parameter is now around 95$\%$, as has been initially specified. (The above tables show the rate that true parameter falls outside the confidence interval.)
 
 
 
