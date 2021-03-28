@@ -70,12 +70,6 @@ theme_simple <- theme_bw() + theme(
 ```
 
 
-> Can I propose something like each of is having a master file... like this one... that we each use to collect our thoughts as we work through the next ten weeks? 
-
-
-
-# {.tabset .tabset-fade .tabset-pills}
-
 ## A3 - The visualization of treatment variation
 
 > Due date: 26 January 2021 
