@@ -1,12 +1,7 @@
 ---
-title: "Micro-metrics, [Glen Waddell](https://glenwaddell.com)"
-author: Boyoon Chang
-date: "Winter 2020"
-#date: "<br>27 March 2021"
-header-includes:
-  - \usepackage{mathtools}
-  - \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
-  - \usepackage{amssymb}
+title: "Assignment 4"
+author: "Boyoon Chang"
+date: "March 27, 2021"
 output: 
   html_document: 
     code_folding: hide
@@ -22,9 +17,9 @@ output:
 
 ## A4 - Standard errors and clustering
 
----
-
 > Due date: 9 February 2021
+
+---
 
 First, simulate a DGP in which there is a panel of economic units (_e.g._, firms, students, countries) that can be organized into "clusters" of some kind (_e.g._, industry, classrooms, years). In addition to the _iid_ variation in _y_ across _ic_, also give yourself the ability to control sources of co-variation in _y_ that are specific to economic units _i_ and/or specific to clusters _c_. 
 
